@@ -1,0 +1,1935 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="warm-dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlyLab Pro v4 — Cloud Drosophila Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Nunito:wght@400;500;600;700;800&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ============================================================
+   FlyLab Pro — "Warm Planner" redesign
+   Soft, bright, friendly planner aesthetic inspired by
+   aesthetic daily-planner apps. Cream/peach backgrounds,
+   coral accent, very rounded cards, soft shadows.
+   All original class names & IDs preserved.
+   ============================================================ */
+
+:root {
+  --radius: 24px;
+  --radius-sm: 16px;
+  --radius-lg: 30px;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Nunito', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'Nunito Sans', ui-monospace, monospace;
+  --ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ============ THEMES ============ */
+/* PEACH CREAM (default) — warm, bright, coral accent */
+[data-theme="warm-dark"] {
+  --bg: #fbeee6;
+  --bg-deep: #f6e2d5;
+  --surface: #fffaf5;
+  --surface-2: #fdf2ea;
+  --surface-3: #f7e6da;
+  --surface-4: #f0d7c6;
+  --border: #f2e0d2;
+  --border-2: #ecd3c1;
+  --hover: #fdf2ea;
+  --text: #4a3b33;
+  --text-bright: #2e231d;
+  --text-2: #6b574b;
+  --text-3: #8a7567;
+  --text-muted: #a8927f;
+  --text-faint: #c9b5a4;
+  --accent: #f2785c;
+  --accent-hover: #ef6347;
+  --accent-soft: #fde4dc;
+  --accent-glow: rgba(242, 120, 92, 0.22);
+  --shadow-soft: 0 10px 30px -12px rgba(180, 120, 90, 0.28);
+}
+/* BLUSH PINK — soft rose like the reference */
+[data-theme="warm-light"] {
+  --bg: #fdeef0;
+  --bg-deep: #fae0e4;
+  --surface: #fffafb;
+  --surface-2: #fef1f3;
+  --surface-3: #fbe4e8;
+  --surface-4: #f5d3d9;
+  --border: #f8dde2;
+  --border-2: #f2ccd3;
+  --hover: #fef1f3;
+  --text: #4a3640;
+  --text-bright: #2f2028;
+  --text-2: #6d5560;
+  --text-3: #8d7480;
+  --text-muted: #ad94a0;
+  --text-faint: #d0b8c2;
+  --accent: #fa7a8a;
+  --accent-hover: #f86274;
+  --accent-soft: #fde0e5;
+  --accent-glow: rgba(250, 122, 138, 0.22);
+  --shadow-soft: 0 10px 30px -12px rgba(200, 120, 140, 0.28);
+}
+/* BUTTER YELLOW — warm sunny cream */
+[data-theme="cool-dark"] {
+  --bg: #fdf4e3;
+  --bg-deep: #f8ecd2;
+  --surface: #fffdf8;
+  --surface-2: #fdf6e9;
+  --surface-3: #f8edd8;
+  --surface-4: #f1e0c2;
+  --border: #f5ead4;
+  --border-2: #eedfc4;
+  --hover: #fdf6e9;
+  --text: #463c2b;
+  --text-bright: #2d2618;
+  --text-2: #685b45;
+  --text-3: #897a60;
+  --text-muted: #a8987c;
+  --text-faint: #cbbd9f;
+  --accent: #f0a73c;
+  --accent-hover: #e89422;
+  --accent-soft: #fceccf;
+  --accent-glow: rgba(240, 167, 60, 0.22);
+  --shadow-soft: 0 10px 30px -12px rgba(190, 150, 80, 0.28);
+}
+/* SAGE MINT — soft fresh green-cream */
+[data-theme="midnight"] {
+  --bg: #eef4ec;
+  --bg-deep: #e2ecdf;
+  --surface: #fbfdfa;
+  --surface-2: #f1f6ef;
+  --surface-3: #e6efe2;
+  --surface-4: #d6e3d1;
+  --border: #e4ede1;
+  --border-2: #d5e1d0;
+  --hover: #f1f6ef;
+  --text: #35423a;
+  --text-bright: #202b25;
+  --text-2: #51604f;
+  --text-3: #71806e;
+  --text-muted: #94a290;
+  --text-faint: #bccbb7;
+  --accent: #5ab98a;
+  --accent-hover: #46a878;
+  --accent-soft: #dcefe4;
+  --accent-glow: rgba(90, 185, 138, 0.2);
+  --shadow-soft: 0 10px 30px -12px rgba(110, 160, 130, 0.26);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-weight: 500;
+  letter-spacing: 0;
+  transition: background 0.4s var(--ease-soft), color 0.4s var(--ease-soft);
+  position: relative;
+}
+
+/* Soft atmospheric bloom */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(110% 70% at 90% -5%, var(--accent-glow), transparent 50%),
+    radial-gradient(80% 50% at 5% 100%, var(--accent-glow), transparent 45%);
+  opacity: 0.6;
+}
+
+.app, .login-screen { position: relative; z-index: 1; }
+
+* { transition: background-color 0.25s var(--ease-soft), border-color 0.25s var(--ease-soft), color 0.2s var(--ease-soft), transform 0.25s var(--ease), box-shadow 0.25s var(--ease-soft); }
+
+.app { max-width: 1500px; margin: 0 auto; padding: 2rem 1.75rem; }
+
+/* ============ TOP BAR ============ */
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 2rem; padding-bottom: 1.25rem;
+  border-bottom: 2px solid var(--border);
+  flex-wrap: wrap; gap: 14px;
+}
+.logo { display: flex; align-items: center; gap: 14px; }
+.logo-icon {
+  width: 52px; height: 52px;
+  background: var(--accent);
+  border-radius: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 27px;
+  box-shadow: 0 8px 20px -6px var(--accent-glow);
+}
+.logo h1 {
+  font-family: var(--font-display);
+  font-size: 28px; font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-bright);
+}
+.logo p {
+  font-size: 11px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.18em;
+  font-weight: 700; margin-top: 3px;
+}
+
+.sync-status {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 11px; font-weight: 700;
+  padding: 7px 15px; border-radius: 30px;
+  background: var(--accent-soft); color: var(--accent);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.sync-status.syncing { background: var(--surface-3); color: var(--text-3); }
+.sync-status.offline { background: #fde2e2; color: #e25555; }
+.sync-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s var(--ease-soft) infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(0.85);} }
+
+.user-chip {
+  display: flex; align-items: center; gap: 11px;
+  background: var(--surface); padding: 8px 16px 8px 8px;
+  border-radius: 30px; border: 2px solid var(--border);
+  cursor: pointer; box-shadow: var(--shadow-soft);
+}
+.user-chip:hover { border-color: var(--accent); transform: translateY(-1px); }
+.user-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--accent); color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 800; font-size: 15px;
+}
+.user-info { font-size: 13px; line-height: 1.3; }
+.user-info strong { display: block; color: var(--text-bright); font-weight: 800; }
+.user-info span { font-size: 10.5px; color: var(--text-muted); font-weight: 600; }
+
+/* ============ NAV TABS ============ */
+.nav-tabs {
+  display: flex; gap: 4px; margin-bottom: 2rem;
+  background: var(--surface);
+  padding: 7px; border-radius: 24px;
+  overflow-x: auto;
+  box-shadow: var(--shadow-soft);
+  border: 2px solid var(--border);
+}
+.nav-tabs::-webkit-scrollbar { height: 0; }
+.tab-btn {
+  padding: 12px 18px; border: none; background: transparent;
+  color: var(--text-3); cursor: pointer;
+  font-size: 13.5px; font-weight: 700; font-family: var(--font-body);
+  border-radius: 18px;
+  white-space: nowrap; display: flex; align-items: center; gap: 7px;
+}
+.tab-btn:hover { color: var(--accent); background: var(--hover); }
+.tab-btn.active {
+  background: var(--accent); color: #fff;
+  box-shadow: 0 6px 16px -6px var(--accent-glow);
+}
+.tab-btn.admin-only { color: var(--text-muted); }
+.tab-btn.admin-only.active { background: var(--accent); color: #fff; }
+
+.tab-content { animation: fadeIn 0.5s var(--ease-soft); }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+.hidden { display: none !important; }
+
+/* ============ CARDS ============ */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.85rem;
+  margin-bottom: 1.5rem;
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+.card h2 {
+  font-family: var(--font-display);
+  font-size: 22px; font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 1.3rem;
+  color: var(--text-bright);
+  display: flex; align-items: center; gap: 10px;
+}
+.card h3 {
+  font-size: 13px; font-weight: 800;
+  margin: 1.3rem 0 0.85rem;
+  color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.08em;
+}
+
+.grid { display: grid; gap: 1.1rem; }
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.grid-4 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+
+/* ============ STAT CARDS ============ */
+.stat-card {
+  background: var(--surface-2);
+  padding: 1.5rem 1.3rem; border-radius: var(--radius-sm);
+  border: 2px solid var(--border);
+  text-align: center;
+}
+.stat-card:hover { transform: translateY(-4px); border-color: var(--accent); }
+.stat-label {
+  font-size: 10.5px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 0.7rem; font-weight: 800;
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 38px; font-weight: 600;
+  color: var(--accent); line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+/* ============ FORMS ============ */
+label {
+  font-size: 10.5px; font-weight: 800; color: var(--text-3);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  display: block; margin-bottom: 7px;
+}
+input, select, textarea {
+  width: 100%; padding: 12px 16px;
+  background: var(--surface-2);
+  border: 2px solid var(--border-2);
+  border-radius: 14px;
+  color: var(--text-bright); font-size: 14px;
+  font-family: inherit; font-weight: 600;
+}
+input::placeholder, textarea::placeholder { color: var(--text-faint); font-weight: 500; }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+textarea { resize: vertical; min-height: 78px; font-family: var(--font-body); font-size: 13.5px; }
+select { cursor: pointer; }
+.form-row { display: grid; gap: 13px; margin-bottom: 1.1rem; }
+/* Prevent native date/time/select inputs from overflowing their grid track and overlapping */
+.form-row > div, .grid > div { min-width: 0; }
+/* iOS/Safari quirk: date & time inputs don't fill their container and size to content.
+   Force them (and all inputs) to behave identically: full width, border-box, left-aligned. */
+input, select, textarea { min-width: 0; box-sizing: border-box; }
+input[type="date"], input[type="time"], input[type="datetime-local"] {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+  min-height: 46px;
+}
+
+/* ============ BUTTONS ============ */
+.btn {
+  padding: 12px 22px; border: 2px solid var(--border-2);
+  background: var(--surface-2); color: var(--text-bright);
+  border-radius: 16px; cursor: pointer;
+  font-size: 13.5px; font-weight: 700; font-family: var(--font-body);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.btn:hover { background: var(--surface-3); transform: translateY(-2px); }
+.btn:active { transform: translateY(0); }
+.btn-primary {
+  background: var(--accent); color: #fff;
+  border-color: transparent; font-weight: 800;
+  box-shadow: 0 8px 20px -8px var(--accent-glow);
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-success { background: var(--accent); color: #fff; border-color: transparent; font-weight: 800; }
+.btn-danger { background: #ee6b6b; color: #fff; border-color: transparent; }
+.btn-sm { padding: 9px 16px; font-size: 12px; border-radius: 13px; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 1.25rem; }
+
+/* ============ TABLES ============ */
+.table-wrap { overflow-x: auto; border-radius: var(--radius-sm); background: var(--surface-2); border: 2px solid var(--border); }
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th {
+  background: var(--surface-3); text-align: left;
+  padding: 14px 16px; font-weight: 800;
+  color: var(--text-3); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  border-bottom: 2px solid var(--border-2);
+}
+td { padding: 14px 16px; border-bottom: 1px solid var(--border); color: var(--text-2); font-weight: 600; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--hover); }
+td strong { color: var(--text-bright); font-weight: 800; }
+
+/* ============ BADGES ============ */
+.badge {
+  display: inline-block; padding: 4px 12px;
+  border-radius: 30px; font-size: 10px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.b-wt   { background: var(--accent-soft); color: var(--accent); }
+.b-active { background: #d9f2e3; color: #3a9d6a; }
+.b-warn { background: #fceccf; color: #d99220; }
+.b-danger { background: #fde0e0; color: #e15858; }
+.b-done { background: var(--surface-4); color: var(--text-3); }
+.b-female { background: #fde0ea; color: #e0588f; }
+.b-male { background: #dceafd; color: #4f8ad6; }
+.b-p  { background: #dceafd; color: #4f8ad6; }
+.b-f1 { background: #fceccf; color: #d99220; }
+.b-f2 { background: #ece1fb; color: #9a6fd4; }
+.b-f3 { background: #ece1fb; color: #9a6fd4; }
+.b-create { background: #d9f2e3; color: #3a9d6a; }
+.b-edit { background: #fceccf; color: #d99220; }
+.b-delete { background: #fde0e0; color: #e15858; }
+.b-admin { background: #ece1fb; color: #9a6fd4; }
+.b-user { background: var(--surface-4); color: var(--text-3); }
+
+/* ============ ALERTS ============ */
+.alert {
+  padding: 15px 18px; border-radius: var(--radius-sm);
+  margin-bottom: 1.25rem; font-size: 13.5px;
+  display: flex; gap: 12px; align-items: flex-start;
+  line-height: 1.55; font-weight: 600;
+}
+.alert-info { background: var(--accent-soft); color: var(--text-2); }
+.alert-warn { background: #fceccf; color: #b8780f; }
+
+/* ============ ACTION BUTTONS ============ */
+.action-btn {
+  background: transparent; border: none; color: var(--text-muted);
+  cursor: pointer; padding: 6px 10px; font-size: 14px; border-radius: 10px;
+}
+.action-btn:hover { color: var(--accent); background: var(--hover); }
+.action-btn.delete:hover { color: #e15858; background: #fde0e0; }
+body.no-edit .action-btn.delete, body.no-edit .action-btn.edit-btn, body.no-edit .can-edit-only { display: none !important; }
+
+/* ============ CALENDAR ============ */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.cal-dow {
+  text-align: center; font-size: 10px; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.1em; padding: 6px 0; font-weight: 800;
+}
+.cal-cell {
+  aspect-ratio: 1; background: var(--surface-2);
+  border: 2px solid var(--border); border-radius: 16px;
+  padding: 9px; cursor: pointer;
+  display: flex; flex-direction: column; position: relative;
+}
+.cal-cell:hover { border-color: var(--accent); background: var(--hover); transform: translateY(-3px); }
+.cal-cell.empty { background: transparent; border: none; cursor: default; }
+.cal-cell.empty:hover { transform: none; }
+.cal-cell.today { border-color: var(--accent); background: var(--accent-soft); }
+.cal-cell.selected { border-color: var(--accent); background: var(--accent-soft); box-shadow: 0 0 0 3px var(--accent-soft); }
+.cal-daynum { font-size: 14px; font-weight: 800; color: var(--text-2); }
+.cal-cell.today .cal-daynum { color: var(--accent); }
+.cal-badge { position: absolute; bottom: 9px; left: 9px; right: 9px; display: flex; gap: 4px; flex-wrap: wrap; }
+.cal-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.cal-dot.done { background: #3a9d6a; }
+.cal-count { font-size: 9.5px; color: var(--text-muted); margin-top: auto; font-weight: 800; }
+@media (max-width: 600px) { .cal-cell { padding: 4px; } .cal-daynum { font-size: 11px; } }
+
+/* ============ THEME PICKER ============ */
+.theme-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(155px, 1fr)); gap: 13px; }
+.theme-option {
+  border: 2px solid var(--border-2); border-radius: 20px;
+  padding: 16px; cursor: pointer; background: var(--surface-2);
+}
+.theme-option:hover { border-color: var(--accent); transform: translateY(-3px); }
+.theme-option.active { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.theme-swatches { display: flex; gap: 7px; margin-bottom: 12px; }
+.theme-swatch { width: 32px; height: 32px; border-radius: 11px; border: 1px solid rgba(0,0,0,0.06); }
+.theme-name { font-size: 13.5px; font-weight: 800; color: var(--text); }
+
+/* ============ EMPTY STATES ============ */
+.empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-faint); font-weight: 600; }
+.empty-state .icon { font-size: 46px; margin-bottom: 1rem; opacity: 0.5; }
+
+/* ============ TASK LIST ============ */
+.task-list { list-style: none; }
+.task-item {
+  background: var(--surface-2); padding: 15px; border-radius: 16px;
+  margin-bottom: 10px; display: flex; gap: 14px; align-items: center;
+  border: 2px solid var(--border);
+}
+.task-item:hover { border-color: var(--accent); }
+.task-time { font-weight: 800; min-width: 92px; font-size: 12.5px; color: var(--accent); }
+.task-desc { flex: 1; font-size: 14px; color: var(--text-2); font-weight: 600; }
+.task-priority {
+  font-size: 9.5px; padding: 4px 11px; border-radius: 30px;
+  background: #fde0e0; color: #e15858;
+  text-transform: uppercase; font-weight: 800; letter-spacing: 0.04em;
+}
+
+/* ============ PROTOCOL CARDS ============ */
+.protocol-card { background: var(--surface-2); padding: 1.5rem; border-radius: var(--radius-sm); margin-bottom: 1.1rem; border: 2px solid var(--border); }
+.protocol-card:hover { border-color: var(--accent); }
+.protocol-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.9rem; gap: 12px; }
+.protocol-title { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--text-bright); }
+.protocol-meta { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
+.protocol-body { font-size: 13.5px; color: var(--text-2); line-height: 1.75; white-space: pre-wrap; margin-top: 3px; font-weight: 600; }
+.file-attach {
+  display: inline-flex; align-items: center; gap: 9px;
+  background: var(--accent-soft); padding: 10px 16px; border-radius: 13px;
+  margin-top: 10px; cursor: pointer;
+  font-size: 13px; color: var(--accent); font-weight: 700;
+}
+.file-attach:hover { background: var(--surface-4); }
+
+/* ============ SETTINGS ============ */
+.setting-group { background: var(--surface-2); padding: 1.2rem; border-radius: var(--radius-sm); margin-bottom: 1.1rem; border: 2px solid var(--border); }
+.setting-row { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 13px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.setting-row:last-child { border-bottom: none; }
+.setting-label { font-size: 13.5px; color: var(--text-2); font-weight: 600; }
+
+/* ============ NOTEBOOK ============ */
+.note-entry { background: var(--surface-2); border-radius: var(--radius-sm); padding: 1.3rem; margin-bottom: 13px; border: 2px solid var(--border); border-left: 5px solid var(--accent); }
+.note-header { display: flex; justify-content: space-between; margin-bottom: 10px; gap: 10px; }
+.note-title { font-family: var(--font-display); font-size: 18px; font-weight: 600; color: var(--text-bright); }
+.note-date { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+.note-section { margin-top: 10px; font-size: 12.5px; }
+.note-section strong { color: var(--text-3); font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 5px; font-weight: 800; }
+.note-section div { color: var(--text-2); line-height: 1.65; white-space: pre-wrap; font-weight: 600; }
+
+/* ============ SEARCH & FILTERS ============ */
+.search-bar {
+  background: var(--surface-2); border-radius: 15px;
+  padding: 11px 18px; display: flex; align-items: center; gap: 10px;
+  margin-bottom: 1.1rem; border: 2px solid var(--border-2);
+}
+.search-bar:focus-within { border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+.search-bar input { border: none; background: transparent; padding: 3px 0; }
+.search-bar input:focus { box-shadow: none; }
+.filter-row { display: flex; gap: 8px; margin-bottom: 1.1rem; flex-wrap: wrap; }
+.filter-chip {
+  padding: 8px 17px; background: var(--surface-2);
+  border: 2px solid var(--border-2); border-radius: 30px;
+  color: var(--text-3); cursor: pointer; font-size: 12px; font-weight: 700;
+}
+.filter-chip:hover { background: var(--surface-3); color: var(--accent); }
+.filter-chip.active { background: var(--accent); border-color: transparent; color: #fff; }
+
+/* ============ PHENOTYPE COUNTER ============ */
+.phenotype-counter { background: var(--surface-2); padding: 15px; border-radius: 17px; text-align: center; border: 2px solid var(--border); }
+.counter-controls { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px; }
+.counter-btn { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border-2); background: var(--surface); color: var(--accent); cursor: pointer; font-size: 16px; font-weight: 800; }
+.counter-btn:hover { background: var(--accent); color: #fff; border-color: transparent; }
+
+/* ============ CHI SQUARE ============ */
+.chi-result { background: var(--surface-2); padding: 1.3rem; border-radius: var(--radius-sm); margin-top: 1.25rem; border: 2px solid var(--border-2); }
+.chi-value { font-size: 34px; font-weight: 700; color: var(--accent); font-family: var(--font-display); letter-spacing: -0.02em; }
+.chi-detail { font-size: 11.5px; color: var(--text-muted); margin-top: 5px; font-weight: 600; }
+.significance { padding: 5px 15px; border-radius: 30px; font-size: 11px; font-weight: 800; display: inline-block; margin-top: 10px; }
+.sig-pass { background: #d9f2e3; color: #3a9d6a; } .sig-fail { background: #fde0e0; color: #e15858; }
+
+/* ============ MODAL ============ */
+.modal-bg { position: fixed; inset: 0; background: rgba(74, 59, 51, 0.4); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; z-index: 100; animation: fadeIn 0.25s var(--ease-soft); }
+.modal { background: var(--surface); border-radius: var(--radius-lg); padding: 2rem; max-width: 620px; width: 90%; max-height: 85vh; overflow-y: auto; border: 2px solid var(--border-2); box-shadow: 0 30px 80px -30px rgba(150, 100, 80, 0.5); }
+.modal h3 { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin-bottom: 1.25rem; color: var(--text-bright); }
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed; bottom: 26px; right: 26px;
+  background: var(--accent); color: #fff;
+  padding: 15px 24px; border-radius: 17px; font-weight: 800; font-size: 14px;
+  box-shadow: 0 20px 50px -15px var(--accent-glow);
+  animation: slideUp 0.4s var(--ease); z-index: 1000;
+}
+@keyframes slideUp { from { transform: translateY(28px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+/* ============ EXPORT MENU ============ */
+.export-menu { position: relative; display: inline-block; }
+.export-dropdown { position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 2px solid var(--border-2); border-radius: 16px; padding: 8px; min-width: 210px; z-index: 50; box-shadow: var(--shadow-soft); }
+.export-dropdown button { display: block; width: 100%; text-align: left; padding: 11px 15px; background: transparent; border: none; color: var(--text-2); cursor: pointer; border-radius: 11px; font-size: 13px; font-family: var(--font-body); font-weight: 700; }
+.export-dropdown button:hover { background: var(--surface-3); color: var(--accent); }
+
+/* ============ LOGIN SCREEN ============ */
+.login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+.login-box {
+  background: var(--surface);
+  border-radius: var(--radius-lg); padding: 3rem 2.75rem;
+  max-width: 440px; width: 100%; border: 2px solid var(--border-2);
+  box-shadow: 0 30px 80px -30px rgba(180, 120, 90, 0.4);
+}
+.login-box .logo { justify-content: center; margin-bottom: 1.85rem; }
+.login-tabs { display: flex; gap: 5px; background: var(--surface-2); padding: 6px; border-radius: 16px; margin-bottom: 1.75rem; border: 2px solid var(--border); }
+.login-tab { flex: 1; padding: 12px; text-align: center; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 11px; font-size: 13.5px; font-weight: 700; font-family: var(--font-body); }
+.login-tab.active { background: var(--accent); color: #fff; }
+.login-error { background: #fde0e0; color: #e15858; padding: 12px; border-radius: 12px; font-size: 13px; margin-top: 12px; font-weight: 600; }
+
+/* ============ SCROLLBAR ============ */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-4); border-radius: 30px; border: 3px solid var(--bg); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 768px) { .app { padding: 1.25rem 1rem; } .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; } .login-box { padding: 2rem 1.5rem; } }
+@media print { body { background: white; color: black; } body::before { display: none; } .nav-tabs, .top-bar, .btn-row, .action-btn { display: none; } .card { border: 1px solid #ccc; background: white; box-shadow: none; } }
+</style>
+</head>
+<body>
+
+<div id="loadingScreen" class="login-screen">
+  <div class="login-box" style="text-align:center;">
+    <div class="logo" style="justify-content:center;"><div class="logo-icon">🪰</div><div><h1>FlyLab Pro</h1></div></div>
+    <p style="color:#888; margin-top:1rem;">Connecting to cloud...</p>
+  </div>
+</div>
+
+<div id="loginScreen" class="login-screen hidden">
+  <div class="login-box">
+    <div class="logo"><div class="logo-icon">🪰</div><div><h1>FlyLab Pro</h1><p>Cloud Drosophila Lab</p></div></div>
+    <div class="login-tabs">
+      <button class="login-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign in</button>
+      <button class="login-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign up</button>
+    </div>
+    <div id="signupNameRow" class="hidden" style="margin-bottom:12px;">
+      <label>Your name</label><input type="text" id="authName" placeholder="e.g., Sarah Cohen">
+      <p style="font-size:11px; color:#888; margin-top:4px;">New accounts start as Regular users. A Super Admin can upgrade you later.</p>
+    </div>
+    <div style="margin-bottom:12px;"><label>Email</label><input type="email" id="authEmail" placeholder="you@lab.edu"></div>
+    <div style="margin-bottom:12px;"><label>Password</label><input type="password" id="authPassword" placeholder="At least 6 characters"></div>
+    <div class="btn-row"><button class="btn btn-primary" id="authSubmit" onclick="submitAuth()" style="width:100%; justify-content:center;">Sign in</button></div>
+    <div id="authError" class="login-error hidden"></div>
+  </div>
+</div>
+
+<div id="mainApp" class="app hidden">
+  <div class="top-bar">
+    <div class="logo">
+      <div class="logo-icon">🪰</div>
+      <div><h1>FlyLab Pro <span style="font-size:11px; color:#888; font-weight:400;">v4 ☁️</span></h1><p>Cloud Drosophila Lab</p></div>
+    </div>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <div class="sync-status" id="syncStatus"><span class="sync-dot"></span><span id="syncText">Synced</span></div>
+      <div class="export-menu">
+        <button class="btn btn-sm" onclick="toggleExportMenu()">📥 Export ▾</button>
+        <div id="exportDropdown" class="export-dropdown hidden">
+          <button onclick="exportXLSX()">📊 Excel (.xlsx)</button>
+          <button onclick="window.print()">🖨️ Print</button>
+        </div>
+      </div>
+      <div class="user-chip" onclick="logout()" title="Click to logout">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-info"><strong id="userName">—</strong><span id="userRole">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-tabs">
+    <button class="tab-btn active" data-tab="dashboard">📊 Dashboard</button>
+    <button class="tab-btn" data-tab="calendar">📅 Calendar</button>
+    <button class="tab-btn" data-tab="stocks">🧬 Stocks</button>
+    <button class="tab-btn" data-tab="crosses">⚗️ Crosses</button>
+    <button class="tab-btn" data-tab="virgins">👶 Virgins</button>
+    <button class="tab-btn" data-tab="phenotype">🔬 Phenotyping</button>
+    <button class="tab-btn" data-tab="notebook">📓 Notebook</button>
+    <button class="tab-btn" data-tab="protocols">📋 Protocols</button>
+    <button class="tab-btn" data-tab="settings">⚙️ Settings</button>
+    <button class="tab-btn admin-only" data-tab="logs" id="logsTab">🛡️ Activity Log</button>
+    <button class="tab-btn admin-only" data-tab="users" id="usersTab">👥 Users</button>
+  </div>
+
+  <div id="dashboard" class="tab-content">
+    <div class="card">
+      <h2>👋 Welcome back, <span id="welcomeName"></span>!</h2>
+      <p style="color:#aaa; font-size:14px; margin-bottom:1rem;" id="dateDisplay"></p>
+      <div class="grid grid-4">
+        <div class="stat-card"><div class="stat-label">Active Stocks</div><div class="stat-value" id="stockCount">0</div></div>
+        <div class="stat-card"><div class="stat-label">Active Crosses</div><div class="stat-value" id="crossCount">0</div></div>
+        <div class="stat-card"><div class="stat-label">Virgins Today</div><div class="stat-value" id="virginToday">0</div></div>
+        <div class="stat-card"><div class="stat-label">Flip Alerts</div><div class="stat-value" id="flipAlert" style="color:#e8b14e;">0</div></div>
+      </div>
+    </div>
+    <div class="card"><h2>⏰ Today's schedule</h2><ul class="task-list" id="dailySchedule"></ul></div>
+    <div class="grid grid-2">
+      <div class="card"><h2>🔔 Stocks needing flip</h2><div id="flipList" class="task-list"></div></div>
+      <div class="card"><h2>⚗️ Active crosses</h2><div id="activeCrossList" class="task-list"></div></div>
+    </div>
+  </div>
+
+  <div id="calendar" class="tab-content hidden">
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+        <button class="btn btn-sm" onclick="calMonthShift(-1)">‹ Prev</button>
+        <h2 id="calMonthLabel" style="margin:0;"></h2>
+        <button class="btn btn-sm" onclick="calMonthShift(1)">Next ›</button>
+      </div>
+      <button class="btn btn-sm" onclick="calGoToday()" style="margin-bottom:1rem;">📍 Today</button>
+      <div id="calGrid" class="cal-grid"></div>
+      <div id="calLegend" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:1rem;"></div>
+    </div>
+
+    <div class="card">
+      <h2>✅ <span id="calDateLabel">Select a day</span></h2>
+      <div class="form-row grid-2" id="calAddRow" style="margin-bottom:1rem;">
+        <div><select id="calTaskSelect"></select></div>
+        <div style="display:flex; align-items:flex-start;"><button class="btn btn-primary" onclick="addCalTask()">+ Add task to this day</button></div>
+      </div>
+      <div id="calDayTasks"></div>
+    </div>
+
+    <div class="card">
+      <h2>🔁 Recurring task list <span class="badge b-wt">editable</span></h2>
+      <p style="color:#888; font-size:12px; margin-bottom:1rem;">Tasks you can add to any day. Shared across the lab.</p>
+      <div class="form-row grid-2" style="margin-bottom:0;">
+        <div><input type="text" id="newRecurTask" placeholder="e.g., Collect virgins from S001"></div>
+        <div style="display:flex; align-items:flex-start;"><button class="btn btn-sm" onclick="addRecurTask()">+ Add task to list</button></div>
+      </div>
+      <div id="recurTaskList" style="margin-top:1rem;"></div>
+    </div>
+  </div>
+
+  <div id="stocks" class="tab-content hidden">
+    <div class="card">
+      <h2>🧬 Add new stock</h2>
+      <div class="form-row grid-3">
+        <div><label>Stock ID</label><input type="text" id="stockId"></div>
+        <div><label>Genotype</label><input type="text" id="stockGenotype" placeholder="e.g., w[1118]; +; +"></div>
+        <div><label>Common name</label><input type="text" id="stockName"></div>
+      </div>
+      <div class="form-row grid-3">
+        <div><label>Type</label><select id="stockType"></select></div>
+        <div><label>Source</label><input type="text" id="stockSource"></div>
+        <div><label>Location</label><input type="text" id="stockLocation"></div>
+      </div>
+      <div class="form-row grid-2">
+        <div><label>Last flip date</label><input type="date" id="stockFlipDate"></div>
+        <div><label>Chromosome</label><select id="stockChrom"><option value="">N/A</option><option>X</option><option>2</option><option>3</option><option>4</option></select></div>
+      </div>
+      <div><label>Notes</label><textarea id="stockNotes"></textarea></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="addStock()">+ Add stock</button></div>
+    </div>
+    <div class="card">
+      <h2>📚 Stock library <span style="font-size:12px; color:#888;">(<span id="stockTotalCount">0</span>)</span></h2>
+      <div class="search-bar"><span>🔍</span><input type="text" id="stockSearch" placeholder="Search..." oninput="renderStocks()"></div>
+      <div class="filter-row" id="stockFilters"></div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Genotype</th><th>Type</th><th>Source</th><th>Location</th><th>Flip</th><th>Status</th><th></th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="crosses" class="tab-content hidden">
+    <div class="card">
+      <h2>⚗️ Set up new cross</h2>
+      <div class="form-row grid-3">
+        <div><label>Cross ID</label><input type="text" id="crossId"></div>
+        <div><label>Generation</label><select id="crossGen"><option>P</option><option>F1</option><option>F2</option><option>F3</option></select></div>
+        <div><label>Date started</label><input type="date" id="crossDate"></div>
+      </div>
+      <div class="form-row grid-2">
+        <div><label>♀ Female genotype</label><input type="text" id="crossFemale"></div>
+        <div><label>♂ Male genotype</label><input type="text" id="crossMale"></div>
+      </div>
+      <div class="form-row grid-4">
+        <div><label>Container</label><select id="crossContainer"><option>vial</option><option>bottle</option></select></div>
+        <div><label># females</label><input type="number" id="crossNFemales" min="0" value="5"></div>
+        <div><label># males</label><input type="number" id="crossNMales" min="0" value="10"></div>
+        <div><label>Temp (°C)</label><input type="number" id="crossTemp" value="25" step="0.1"></div>
+      </div>
+      <div><label>Hypothesis</label><textarea id="crossHypothesis"></textarea></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="addCross()">+ Add cross</button></div>
+    </div>
+    <div class="card">
+      <h2>📅 Crosses</h2>
+      <div class="filter-row">
+        <div class="filter-chip active" onclick="filterCrosses('all', this)">All</div>
+        <div class="filter-chip" onclick="filterCrosses('active', this)">Active</div>
+        <div class="filter-chip" onclick="filterCrosses('complete', this)">Complete</div>
+        <div class="filter-chip" onclick="filterCrosses('P', this)">P</div>
+        <div class="filter-chip" onclick="filterCrosses('F1', this)">F1</div>
+        <div class="filter-chip" onclick="filterCrosses('F2', this)">F2</div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Gen</th><th>♀ × ♂</th><th>Setup</th><th>Day</th><th>Temp</th><th>Status</th><th></th></tr></thead><tbody id="crossTableBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="virgins" class="tab-content hidden">
+    <div class="alert alert-warn"><span>⚠️</span><div><strong>Critical timing:</strong> <span id="virginAlertText"></span></div></div>
+    <div class="card">
+      <h2>👶 Log virgin collection</h2>
+      <div class="form-row grid-3">
+        <div><label>Date</label><input type="date" id="virginDate"></div>
+        <div><label>Time</label><input type="time" id="virginTime"></div>
+        <div><label>Session</label><select id="virginSession"><option>AM</option><option>PM</option></select></div>
+      </div>
+      <div class="form-row grid-3">
+        <div><label>Source</label><input type="text" id="virginSource"></div>
+        <div><label>♀ Virgins</label><input type="number" id="virginFemales" min="0" value="0"></div>
+        <div><label>♂ Males</label><input type="number" id="virginMales" min="0" value="0"></div>
+      </div>
+      <div class="form-row grid-2">
+        <div><label>Container</label><input type="text" id="virginContainer"></div>
+        <div><label>Storage temp</label><select id="virginTemp"></select></div>
+      </div>
+      <div><label>Notes</label><textarea id="virginNotes"></textarea></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="addVirgin()">+ Log collection</button></div>
+    </div>
+    <div class="card">
+      <h2>📈 Collection history</h2>
+      <div class="grid grid-3" style="margin-bottom:1rem;">
+        <div class="stat-card"><div class="stat-label">Today</div><div class="stat-value" id="virginsTodayDetail">0</div></div>
+        <div class="stat-card"><div class="stat-label">This week</div><div class="stat-value" id="virginsWeek">0</div></div>
+        <div class="stat-card"><div class="stat-label">All time</div><div class="stat-value" id="virginsAll">0</div></div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Time</th><th>Session</th><th>Source</th><th>♀</th><th>♂</th><th>Container</th><th>Temp</th><th></th></tr></thead><tbody id="virginTableBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="phenotype" class="tab-content hidden">
+    <div class="card">
+      <h2>🔬 Score phenotypes</h2>
+      <div class="form-row grid-3">
+        <div><label>Vial/Cross ID</label><input type="text" id="phenoVial"></div>
+        <div><label>Generation</label><select id="phenoGen"><option>P</option><option>F1</option><option>F2</option><option>F3</option></select></div>
+        <div><label>Scoring date</label><input type="date" id="phenoDate"></div>
+      </div>
+      <h3>Phenotype counters</h3>
+      <div class="grid grid-4" id="phenoCounters"></div>
+      <div class="btn-row" style="margin-top:1rem;">
+        <button class="btn btn-sm" onclick="addPhenoCategory()">+ Add category</button>
+        <button class="btn btn-sm" onclick="resetCounters()">↻ Reset</button>
+      </div>
+      <div style="margin-top:1.5rem;"><label>Notes</label><textarea id="phenoNotes"></textarea></div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="savePhenotype()">💾 Save</button>
+        <button class="btn btn-success" onclick="quickChiSquare()">📐 Chi-square</button>
+      </div>
+      <div id="chiResult"></div>
+    </div>
+    <div class="card">
+      <h2>📋 Phenotype records</h2>
+      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Vial</th><th>Gen</th><th>Categories</th><th>Total</th><th>Notes</th><th></th></tr></thead><tbody id="phenoTableBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="notebook" class="tab-content hidden">
+    <div class="card">
+      <h2>📓 New notebook entry</h2>
+      <div class="form-row grid-2">
+        <div><label>Date</label><input type="date" id="noteDate"></div>
+        <div><label>Title</label><input type="text" id="noteTitle"></div>
+      </div>
+      <div><label>📝 Hypothesis</label><textarea id="noteHypothesis"></textarea></div>
+      <div><label>🧪 Methods</label><textarea id="noteMethods"></textarea></div>
+      <div><label>👀 Results</label><textarea id="noteResults"></textarea></div>
+      <div><label>💭 Conclusions</label><textarea id="noteConclusion"></textarea></div>
+      <div><label>🏷️ Tags</label><input type="text" id="noteTags"></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="addNote()">💾 Save entry</button></div>
+    </div>
+    <div class="card">
+      <h2>📖 Entries</h2>
+      <div class="search-bar"><span>🔍</span><input type="text" id="noteSearch" placeholder="Search..." oninput="renderNotes()"></div>
+      <div id="notesList"></div>
+    </div>
+  </div>
+
+  <div id="protocols" class="tab-content hidden">
+    <div class="card">
+      <h2>📋 Protocol library</h2>
+      <div class="btn-row" style="margin-top:0;">
+        <button class="btn btn-primary" onclick="openProtocolModal()">+ Add protocol</button>
+        <button class="btn btn-sm" onclick="loadDefaultProtocols()">📥 Load defaults</button>
+      </div>
+    </div>
+    <div class="search-bar"><span>🔍</span><input type="text" id="protocolSearch" placeholder="Search..." oninput="renderProtocols()"></div>
+    <div class="filter-row" id="protocolFilters"></div>
+    <div id="protocolsList"></div>
+  </div>
+
+  <div id="settings" class="tab-content hidden">
+    <div class="card">
+      <h2>🎨 Appearance</h2>
+      <p style="color:var(--text-muted); font-size:12px; margin-bottom:1rem;">Choose your theme — saved on this device.</p>
+      <div class="theme-picker" id="themePicker"></div>
+    </div>
+    <div class="card">
+      <h2>⚙️ Daily schedule</h2>
+      <div class="setting-group" id="scheduleSettings"></div>
+      <div class="btn-row"><button class="btn btn-sm" onclick="addScheduleItem()">+ Add item</button><button class="btn btn-success btn-sm" onclick="saveSettings()">💾 Save</button></div>
+    </div>
+    <div class="card">
+      <h2>🌡️ Temperature presets</h2>
+      <div class="setting-group" id="tempSettings"></div>
+      <div class="btn-row"><button class="btn btn-sm" onclick="addTempPreset()">+ Add</button></div>
+    </div>
+    <div class="card">
+      <h2>⏱️ Maintenance intervals</h2>
+      <div class="setting-group">
+        <div class="setting-row"><div class="setting-label">Flip warning (days)</div><input type="number" id="flipWarnDays" style="width:100px;"></div>
+        <div class="setting-row"><div class="setting-label">Flip critical (days)</div><input type="number" id="flipCritDays" style="width:100px;"></div>
+        <div class="setting-row"><div class="setting-label">Virgin window 25°C (hrs)</div><input type="number" id="virginWindow25" style="width:100px;"></div>
+        <div class="setting-row"><div class="setting-label">Virgin window 18°C (hrs)</div><input type="number" id="virginWindow18" style="width:100px;"></div>
+      </div>
+      <div class="btn-row"><button class="btn btn-success btn-sm" onclick="saveSettings()">💾 Save</button></div>
+    </div>
+    <div class="card"><h2>🧬 Stock types</h2><div id="stockTypesList"></div><div class="btn-row"><button class="btn btn-sm" onclick="addStockType()">+ Add</button></div></div>
+    <div class="card"><h2>🔬 Default phenotypes</h2><div id="defaultPhenosList"></div><div class="btn-row"><button class="btn btn-sm" onclick="addDefaultPheno()">+ Add</button></div></div>
+  </div>
+
+  <div id="logs" class="tab-content hidden">
+    <div class="card">
+      <h2>🛡️ Activity log <span class="badge b-admin">Admin only</span></h2>
+      <p style="color:#aaa; font-size:13px; margin-bottom:1rem;">Real-time history of who added, edited, or deleted records across all devices</p>
+      <div class="grid grid-4" style="margin-bottom:1rem;">
+        <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" id="logTotal">0</div></div>
+        <div class="stat-card"><div class="stat-label">Today</div><div class="stat-value" id="logToday">0</div></div>
+        <div class="stat-card"><div class="stat-label">Creates</div><div class="stat-value" id="logCreates" style="color:#7dd85d;">0</div></div>
+        <div class="stat-card"><div class="stat-label">Deletes</div><div class="stat-value" id="logDeletes" style="color:#d95b5b;">0</div></div>
+      </div>
+      <div class="search-bar"><span>🔍</span><input type="text" id="logSearch" placeholder="Search..." oninput="renderLogs()"></div>
+      <div class="filter-row" id="logFilters"></div>
+      <div class="btn-row" style="margin-top:0; margin-bottom:1rem;"><button class="btn btn-sm" onclick="exportLogs()">📥 Export log</button></div>
+      <div class="table-wrap"><table><thead><tr><th>Date & time</th><th>User</th><th>Role</th><th>Action</th><th>Module</th><th>Details</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div id="users" class="tab-content hidden">
+    <div class="card">
+      <h2>👥 Team members <span class="badge b-admin">Admin only</span></h2>
+      <div class="alert alert-info"><span>ℹ️</span><div>Everyone signs up as <strong>Regular</strong> (view + add only). As Super Admin you can promote anyone to <strong>Admin</strong> (edit + delete) or <strong>Super Admin</strong> (full control + this page).</div></div>
+      <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions logged</th><th></th></tr></thead><tbody id="usersTableBody"></tbody></table></div>
+    </div>
+  </div>
+</div>
+
+<div id="protocolModal" class="modal-bg hidden">
+  <div class="modal">
+    <h3 id="protocolModalTitle">Add protocol</h3>
+    <div class="form-row grid-2">
+      <div><label>Name</label><input type="text" id="protocolName"></div>
+      <div><label>Category</label><input type="text" id="protocolCategory" placeholder="e.g., behavior"></div>
+    </div>
+    <div><label>Duration</label><input type="text" id="protocolDuration"></div>
+    <div><label>Materials</label><textarea id="protocolMaterials"></textarea></div>
+    <div><label>Steps (one per line)</label><textarea id="protocolSteps" style="min-height:120px;"></textarea></div>
+    <div><label>Notes</label><textarea id="protocolNotes"></textarea></div>
+    <div>
+      <label>📎 Attach file (PDF / Word)</label>
+      <input type="file" id="protocolFile" accept=".pdf,.doc,.docx" onchange="handleProtocolFile(event)">
+      <div id="protocolFileInfo" style="font-size:12px; color:#888; margin-top:6px;"></div>
+    </div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="saveProtocol()">💾 Save</button><button class="btn" onclick="closeProtocolModal()">Cancel</button></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAsVBai3D8ojfynejbtiGWsxvCe7bqjQ9c",
+  authDomain: "flylab-c1f97.firebaseapp.com",
+  projectId: "flylab-c1f97",
+  storageBucket: "flylab-c1f97.firebasestorage.app",
+  messagingSenderId: "228492768215",
+  appId: "1:228492768215:web:994473718aed17ea305192",
+  measurementId: "G-XD4WTQ0QQE"
+};
+
+const fbApp = initializeApp(firebaseConfig);
+const auth = getAuth(fbApp);
+const db = getFirestore(fbApp);
+
+const defaultSettings = {
+  schedule: [
+    { time: '08:00', desc: 'Morning virgin collection', priority: 'critical' },
+    { time: '09:00', desc: 'Set up crosses with collected virgins', priority: '' },
+    { time: '14:00', desc: 'Check cultures, phenotype, flip stocks', priority: '' },
+    { time: '17:00', desc: 'Afternoon virgin collection', priority: 'critical' },
+    { time: '20:00', desc: 'Clear adults, move stocks to 18°C', priority: '' }
+  ],
+  temps: [
+    { value: '18', label: '18°C (slow, ~18-20d)' },
+    { value: '25', label: '25°C (standard, ~10d)' },
+    { value: '29', label: '29°C (fast, ~8d)' }
+  ],
+  flipWarnDays: 10, flipCritDays: 14, virginWindow25: 12, virginWindow18: 18,
+  stockTypes: ['wild-type', 'mutant', 'GAL4 driver', 'UAS responder', 'balancer', 'RNAi line', 'CRISPR line', 'other'],
+  defaultPhenos: ['Wild-type', 'Mutant', '♀ flies', '♂ flies'],
+  recurringTasks: [
+    { name: 'Collect virgins (AM)', color: '#4a9eff' },
+    { name: 'Collect virgins (PM)', color: '#85b7eb' },
+    { name: 'Flip stocks', color: '#d95b5b' },
+    { name: 'Set up crosses', color: '#b06bb0' },
+    { name: 'Check cultures', color: '#4caf50' },
+    { name: 'Score phenotypes', color: '#e8b14e' },
+    { name: 'Move stocks to 18°C', color: '#5bc8d9' },
+    { name: 'Prepare fly food', color: '#c8954a' }
+  ]
+};
+
+const defaultProtocols = [
+  { name: 'Virgin collection', category: 'maintenance', duration: '5-10 min/stock', materials: 'CO₂ pad, fresh vials, brush, microscope', steps: '1. Clear adults from vial at evening\n2. Return 8-12hr later\n3. Anesthetize, identify virgins (pale, meconium spot)\n4. Sort females into fresh vial\n5. Store at 18°C', notes: 'At 25°C ~10hr window. Never exceed it.' },
+  { name: 'Standard cross setup', category: 'genetics', duration: '15 min, 14d total', materials: 'Fresh vials, virgins, males, labels', steps: '1. Verify virgin females\n2. Add 5♀ + 10♂ to fresh vial\n3. Label fully\n4. 25°C incubate\n5. Transfer after 3-4d\n6. Remove parents before F1 eclose', notes: 'Bottles: 20-30♀ + 30-50♂.' },
+  { name: 'Climbing assay (geotaxis)', category: 'behavior', duration: '15-20 min', materials: 'Vials, stopwatch, light, camera', steps: '1. Place 10-20 flies in vial\n2. Tap to bottom 3×\n3. Time climbing past 8cm\n4. Record at 10s, 15s\n5. Repeat 3×', notes: 'ZT 2-10, flies 3-5d old, no CO₂ 24hr before.' },
+  { name: 'Fly food prep (Bloomington)', category: 'maintenance', duration: '3hr for 600-800 vials', materials: 'Cornmeal, yeast, soy flour, agar, corn syrup, propionic acid', steps: '1. Per 1L: cornmeal 73g, yeast 17g, soy 10g, agar 5g\n2. Boil water, add dry ingredients\n3. Cook >90°C 10min\n4. Cool, add corn syrup 77mL\n5. Add propionic acid 5mL\n6. Dispense, cool, store 4°C', notes: 'Use within 2-3 weeks.' }
+];
+
+// Local cache mirrored from Firestore
+let data = { stocks: [], crosses: [], virgins: [], phenotypes: [], notes: [], protocols: [], calTasks: [], logs: [], settings: JSON.parse(JSON.stringify(defaultSettings)) };
+let phenoCategories = [...defaultSettings.defaultPhenos];
+let currentUser = null;
+let currentProfile = null;
+let activeStockFilter = 'all', activeCrossFilter = 'all', activeProtocolFilter = 'all', activeLogFilter = 'all';
+let editingProtocolIdx = -1;
+let pendingProtocolFile = null;
+let authMode = 'login';
+let unsubscribers = [];
+
+const THEMES = [
+  { id: 'warm-dark', name: 'Peach Cream', swatches: ['#fbeee6', '#f2785c', '#4a3b33'] },
+  { id: 'warm-light', name: 'Blush Pink', swatches: ['#fdeef0', '#fa7a8a', '#4a3640'] },
+  { id: 'cool-dark', name: 'Butter', swatches: ['#fdf4e3', '#f0a73c', '#463c2b'] },
+  { id: 'midnight', name: 'Sage Mint', swatches: ['#eef4ec', '#5ab98a', '#35423a'] }
+];
+function applyTheme(id) {
+  document.documentElement.setAttribute('data-theme', id);
+  localStorage.setItem('flyLabTheme', id);
+  renderThemePicker();
+}
+window.applyTheme = applyTheme;
+function renderThemePicker() {
+  const cont = document.getElementById('themePicker');
+  if (!cont) return;
+  const current = localStorage.getItem('flyLabTheme') || 'warm-dark';
+  cont.innerHTML = THEMES.map(t => `
+    <div class="theme-option ${t.id === current ? 'active' : ''}" onclick="applyTheme('${t.id}')">
+      <div class="theme-swatches">${t.swatches.map(s => `<span class="theme-swatch" style="background:${s};"></span>`).join('')}</div>
+      <div class="theme-name">${t.name}</div>
+    </div>`).join('');
+}
+// Apply saved theme immediately
+(function() { const saved = localStorage.getItem('flyLabTheme'); if (saved) document.documentElement.setAttribute('data-theme', saved); })();
+
+function setSyncStatus(state) {
+  const el = document.getElementById('syncStatus');
+  const txt = document.getElementById('syncText');
+  el.className = 'sync-status ' + (state === 'synced' ? '' : state);
+  txt.textContent = state === 'synced' ? 'Synced' : state === 'syncing' ? 'Syncing...' : 'Offline';
+}
+
+function toast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+// ====== AUTH ======
+window.switchAuthTab = function(mode) {
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('tabSignup').classList.toggle('active', mode === 'signup');
+  document.getElementById('signupNameRow').classList.toggle('hidden', mode === 'login');
+  document.getElementById('authSubmit').textContent = mode === 'login' ? 'Sign in' : 'Create account';
+  document.getElementById('authError').classList.add('hidden');
+};
+
+window.submitAuth = async function() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  errEl.classList.add('hidden');
+  if (!email || !password) { showAuthError('Enter email and password'); return; }
+  try {
+    if (authMode === 'signup') {
+      const name = document.getElementById('authName').value.trim();
+      if (!name) { showAuthError('Enter your name'); return; }
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      await setDoc(doc(db, 'users', cred.user.uid), { name, email, role: 'regular', created: Date.now() });
+    } else {
+      await signInWithEmailAndPassword(auth, email, password);
+    }
+  } catch (e) {
+    showAuthError(translateError(e.code));
+  }
+};
+
+function showAuthError(msg) {
+  const errEl = document.getElementById('authError');
+  errEl.textContent = msg;
+  errEl.classList.remove('hidden');
+}
+function translateError(code) {
+  const map = {
+    'auth/invalid-email': 'Invalid email address',
+    'auth/user-not-found': 'No account with this email',
+    'auth/wrong-password': 'Wrong password',
+    'auth/invalid-credential': 'Wrong email or password',
+    'auth/email-already-in-use': 'Email already registered — try signing in',
+    'auth/weak-password': 'Password must be at least 6 characters'
+  };
+  return map[code] || ('Error: ' + code);
+}
+
+window.logout = async function() {
+  if (confirm('Log out?')) {
+    await logActivity('logout', 'system', `${currentProfile.name} logged out`);
+    unsubscribers.forEach(u => u());
+    unsubscribers = [];
+    await signOut(auth);
+  }
+};
+
+onAuthStateChanged(auth, async (user) => {
+  if (user) {
+    currentUser = user;
+    const profileSnap = await getDoc(doc(db, 'users', user.uid));
+    if (!profileSnap.exists()) {
+      // profile missing (edge case) - create minimal
+      currentProfile = { name: user.email.split('@')[0], email: user.email, role: 'regular' };
+      await setDoc(doc(db, 'users', user.uid), { ...currentProfile, created: Date.now() });
+    } else {
+      currentProfile = profileSnap.data();
+    }
+    enterApp();
+  } else {
+    currentUser = null;
+    currentProfile = null;
+    document.getElementById('loadingScreen').classList.add('hidden');
+    document.getElementById('mainApp').classList.add('hidden');
+    document.getElementById('loginScreen').classList.remove('hidden');
+  }
+});
+
+function enterApp() {
+  document.getElementById('loadingScreen').classList.add('hidden');
+  document.getElementById('loginScreen').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+  document.getElementById('userAvatar').textContent = currentProfile.name.charAt(0).toUpperCase();
+  document.getElementById('userName').textContent = currentProfile.name;
+  document.getElementById('userRole').textContent = roleLabel(currentProfile.role);
+  document.getElementById('welcomeName').textContent = currentProfile.name;
+  const isSuperAdmin = currentProfile.role === 'super_admin';
+  document.getElementById('logsTab').style.display = isSuperAdmin ? '' : 'none';
+  document.getElementById('usersTab').style.display = isSuperAdmin ? '' : 'none';
+  applyPermissions();
+  renderThemePicker();
+  subscribeAll();
+  setToday();
+  logActivity('login', 'system', `${currentProfile.name} logged in`);
+}
+
+function roleLabel(r) {
+  if (r === 'super_admin') return '⭐ Super Admin';
+  if (r === 'admin') return '🛡️ Admin';
+  return 'Regular';
+}
+function canEdit() { return currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'super_admin'); }
+function canDelete() { return currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'super_admin'); }
+function canManageRoles() { return currentProfile && currentProfile.role === 'super_admin'; }
+
+// Hide delete/edit buttons for regular users via CSS class on body
+function applyPermissions() {
+  document.body.classList.toggle('no-edit', !canEdit());
+}
+
+// ====== FIRESTORE REAL-TIME SYNC ======
+const COLLECTIONS = ['stocks', 'crosses', 'virgins', 'phenotypes', 'notes', 'protocols', 'calTasks'];
+
+function subscribeAll() {
+  setSyncStatus('syncing');
+  // Shared settings doc
+  unsubscribers.push(onSnapshot(doc(db, 'config', 'settings'), (snap) => {
+    if (snap.exists()) { data.settings = { ...JSON.parse(JSON.stringify(defaultSettings)), ...snap.data() }; }
+    else { setDoc(doc(db, 'config', 'settings'), data.settings); }
+    if (!data.settings.recurringTasks) data.settings.recurringTasks = [...defaultSettings.recurringTasks];
+    populateSelects(); renderDashboardSchedule(); renderScheduleSettings(); renderTempSettings(); renderStockTypes(); renderDefaultPhenos(); loadSettingsInputs(); renderStockFilters(); refreshDashboard();
+  }));
+
+  COLLECTIONS.forEach(coll => {
+    unsubscribers.push(onSnapshot(collection(db, coll), (snap) => {
+      data[coll] = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      renderCollection(coll);
+      refreshDashboard();
+      setSyncStatus('synced');
+    }, (err) => { console.error(err); setSyncStatus('offline'); }));
+  });
+
+  // Logs (admin sees all, but we subscribe for everyone to write; render only for admin)
+  unsubscribers.push(onSnapshot(query(collection(db, 'logs'), orderBy('timestamp', 'desc')), (snap) => {
+    data.logs = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    if (currentProfile && currentProfile.role === 'super_admin') renderLogs();
+  }));
+
+  // Users (for admin user management)
+  unsubscribers.push(onSnapshot(collection(db, 'users'), (snap) => {
+    data.users = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+    if (currentProfile && currentProfile.role === 'super_admin') renderUsers();
+  }));
+}
+
+function renderCollection(coll) {
+  if (coll === 'stocks') renderStocks();
+  else if (coll === 'crosses') renderCrosses();
+  else if (coll === 'virgins') renderVirgins();
+  else if (coll === 'phenotypes') renderPhenotypes();
+  else if (coll === 'notes') renderNotes();
+  else if (coll === 'protocols') renderProtocols();
+  else if (coll === 'calTasks') renderCalendarDay();
+}
+
+async function dbAdd(coll, obj) {
+  setSyncStatus('syncing');
+  obj.createdBy = currentProfile.name;
+  obj.created = Date.now();
+  await addDoc(collection(db, coll), obj);
+}
+async function dbDelete(coll, id) {
+  setSyncStatus('syncing');
+  await deleteDoc(doc(db, coll, id));
+}
+async function dbUpdate(coll, id, obj) {
+  setSyncStatus('syncing');
+  await updateDoc(doc(db, coll, id), obj);
+}
+async function saveSettingsToCloud() {
+  setSyncStatus('syncing');
+  await setDoc(doc(db, 'config', 'settings'), data.settings);
+}
+
+async function logActivity(action, module, details) {
+  if (!currentProfile) return;
+  try {
+    await addDoc(collection(db, 'logs'), {
+      user: currentProfile.name, role: currentProfile.role,
+      action, module, details, timestamp: Date.now()
+    });
+  } catch (e) { console.error('log failed', e); }
+}
+
+// ====== TAB NAV ======
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    btn.classList.add('active');
+    document.getElementById(btn.dataset.tab).classList.remove('hidden');
+    refreshDashboard();
+    if (btn.dataset.tab === 'logs') { renderLogs(); purgeOldLogs(); }
+    if (btn.dataset.tab === 'calendar') renderCalendarDay();
+    if (btn.dataset.tab === 'users') renderUsers();
+  });
+});
+
+function setToday() {
+  const today = new Date().toISOString().split('T')[0];
+  ['stockFlipDate', 'crossDate', 'virginDate', 'phenoDate', 'noteDate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = today;
+  });
+  const now = new Date();
+  const vt = document.getElementById('virginTime');
+  if (vt && !vt.value) vt.value = now.toTimeString().slice(0, 5);
+  const dd = document.getElementById('dateDisplay');
+  if (dd) dd.textContent = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+}
+
+function populateSelects() {
+  const st = document.getElementById('stockType');
+  if (st) st.innerHTML = data.settings.stockTypes.map(t => `<option value="${t}">${t}</option>`).join('');
+  const vt = document.getElementById('virginTemp');
+  if (vt) vt.innerHTML = data.settings.temps.map(t => `<option value="${t.value}">${t.label}</option>`).join('');
+  const va = document.getElementById('virginAlertText');
+  if (va) va.textContent = `Adults don't mate for ~10hr after eclosion. Collect within ${data.settings.virginWindow25}hr at 25°C (${data.settings.virginWindow18}hr at 18°C).`;
+  const cts = document.getElementById('calTaskSelect');
+  if (cts) { const rt = normalizeRecurring(); cts.innerHTML = rt.map(t => `<option value="${t.name.replace(/"/g,'&quot;')}">${t.name}</option>`).join(''); }
+  renderRecurTaskList();
+}
+
+// Convert any legacy string entries to {name,color}
+function normalizeRecurring() {
+  if (!data.settings.recurringTasks) data.settings.recurringTasks = [];
+  data.settings.recurringTasks = data.settings.recurringTasks.map(t =>
+    typeof t === 'string' ? { name: t, color: '#4a9eff' } : { name: t.name, color: t.color || '#4a9eff' }
+  );
+  return data.settings.recurringTasks;
+}
+
+function colorForTask(taskName) {
+  const rt = normalizeRecurring();
+  const found = rt.find(t => t.name === taskName);
+  return found ? found.color : '#888888';
+}
+
+function renderRecurTaskList() {
+  const cont = document.getElementById('recurTaskList');
+  if (!cont) return;
+  const rt = normalizeRecurring();
+  if (rt.length === 0) { cont.innerHTML = '<p style="color:#666; font-size:13px;">No recurring tasks yet</p>'; return; }
+  cont.innerHTML = `<div class="setting-group">${rt.map((t, i) => `
+    <div class="setting-row">
+      <div style="display:flex; gap:8px; align-items:center; flex:1;">
+        <input type="color" value="${t.color}" onchange="updateRecurColor(${i}, this.value)" style="width:40px; height:34px; padding:2px; cursor:pointer;">
+        <input type="text" value="${t.name.replace(/"/g,'&quot;')}" onchange="updateRecurTask(${i}, this.value)">
+      </div>
+      <button class="action-btn delete" onclick="removeRecurTask(${i})">🗑</button>
+    </div>`).join('')}</div>`;
+}
+window.updateRecurTask = async function(i, value) { normalizeRecurring(); data.settings.recurringTasks[i].name = value; await saveSettingsToCloud(); };
+window.updateRecurColor = async function(i, value) { normalizeRecurring(); data.settings.recurringTasks[i].color = value; await saveSettingsToCloud(); };
+window.addRecurTask = async function() {
+  const inp = document.getElementById('newRecurTask');
+  const v = inp.value.trim();
+  if (!v) { toast('Enter a task'); return; }
+  normalizeRecurring();
+  const palette = ['#4a9eff','#d95b5b','#4caf50','#e8b14e','#b06bb0','#5bc8d9','#f5a962','#7dd85d'];
+  const color = palette[data.settings.recurringTasks.length % palette.length];
+  data.settings.recurringTasks.push({ name: v, color });
+  await saveSettingsToCloud();
+  inp.value = '';
+  logActivity('edit', 'calendar', `Added recurring task "${v}"`);
+  toast('Task added to list');
+};
+window.removeRecurTask = async function(i) {
+  data.settings.recurringTasks.splice(i, 1);
+  await saveSettingsToCloud();
+};
+
+window.addCalTask = async function() {
+  const date = calSelectedDate;
+  const task = document.getElementById('calTaskSelect').value;
+  if (!date) { toast('Select a day first'); return; }
+  if (!task) { toast('Pick a task'); return; }
+  await dbAdd('calTasks', { date, task, color: colorForTask(task), done: false });
+  logActivity('create', 'Calendar', `Added "${task}" to ${date}`);
+  toast('Task added');
+};
+window.toggleCalTask = async function(id) {
+  const t = data.calTasks.find(x => x._id === id);
+  await dbUpdate('calTasks', id, { done: !t.done });
+};
+window.deleteCalTask = async function(id) {
+  if (!canDelete()) { toast('No permission to delete'); return; }
+  await dbDelete('calTasks', id);
+  logActivity('delete', 'Calendar', `Removed a task`);
+};
+
+let calViewYear = new Date().getFullYear();
+let calViewMonth = new Date().getMonth();
+let calSelectedDate = new Date().toISOString().split('T')[0];
+
+window.calMonthShift = function(delta) {
+  calViewMonth += delta;
+  if (calViewMonth < 0) { calViewMonth = 11; calViewYear--; }
+  if (calViewMonth > 11) { calViewMonth = 0; calViewYear++; }
+  renderCalendarGrid();
+};
+window.calGoToday = function() {
+  const now = new Date();
+  calViewYear = now.getFullYear();
+  calViewMonth = now.getMonth();
+  calSelectedDate = now.toISOString().split('T')[0];
+  renderCalendarGrid();
+  renderCalendarDay();
+};
+window.calSelectDay = function(dateStr) {
+  calSelectedDate = dateStr;
+  renderCalendarGrid();
+  renderCalendarDay();
+};
+
+function dateKey(y, m, d) {
+  return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+
+function renderCalendarGrid() {
+  const grid = document.getElementById('calGrid');
+  if (!grid) return;
+  const label = document.getElementById('calMonthLabel');
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  if (label) label.textContent = `${monthNames[calViewMonth]} ${calViewYear}`;
+
+  const todayStr = new Date().toISOString().split('T')[0];
+  const firstDay = new Date(calViewYear, calViewMonth, 1).getDay();
+  const daysInMonth = new Date(calViewYear, calViewMonth + 1, 0).getDate();
+
+  // collect tasks per day with colors
+  const tasksByDay = {};
+  (data.calTasks || []).forEach(t => {
+    if (!tasksByDay[t.date]) tasksByDay[t.date] = { total: 0, done: 0, colors: [] };
+    tasksByDay[t.date].total++;
+    if (t.done) tasksByDay[t.date].done++;
+    const c = t.color || colorForTask(t.task);
+    if (!tasksByDay[t.date].colors.includes(c)) tasksByDay[t.date].colors.push(c);
+  });
+
+  const dows = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+
+  for (let i = 0; i < firstDay; i++) html += '<div class="cal-cell empty"></div>';
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = dateKey(calViewYear, calViewMonth, d);
+    const info = tasksByDay[ds];
+    const cls = ['cal-cell'];
+    if (ds === todayStr) cls.push('today');
+    if (ds === calSelectedDate) cls.push('selected');
+    let dots = '';
+    if (info) {
+      dots = '<div class="cal-badge">' + info.colors.slice(0, 5).map(c => `<span class="cal-dot" style="background:${c};"></span>`).join('') + '</div>';
+    }
+    const countTxt = info ? `<div class="cal-count">${info.done}/${info.total}</div>` : '';
+    html += `<div class="${cls.join(' ')}" onclick="calSelectDay('${ds}')"><div class="cal-daynum">${d}</div>${countTxt}${dots}</div>`;
+  }
+  grid.innerHTML = html;
+
+  const legend = document.getElementById('calLegend');
+  if (legend) {
+    const rt = normalizeRecurring();
+    legend.innerHTML = rt.map(t => `<div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#aaa;"><span style="width:12px; height:12px; border-radius:50%; background:${t.color}; display:inline-block;"></span>${t.name}</div>`).join('');
+  }
+}
+
+function renderCalendarDay() {
+  renderCalendarGrid();
+  const label = document.getElementById('calDateLabel');
+  if (label && calSelectedDate) label.textContent = new Date(calSelectedDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+  const cont = document.getElementById('calDayTasks');
+  if (!cont) return;
+  const tasks = (data.calTasks || []).filter(t => t.date === calSelectedDate).sort((a,b) => (a.created||0)-(b.created||0));
+  if (tasks.length === 0) { cont.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>No tasks for this day. Add one above.</p></div>'; return; }
+  const done = tasks.filter(t => t.done).length;
+  cont.innerHTML = `<p style="font-size:12px; color:#888; margin-bottom:10px;">${done}/${tasks.length} completed</p>` + tasks.map(t => {
+    const c = t.color || colorForTask(t.task);
+    return `
+    <li class="task-item" style="border-left:4px solid ${c}; ${t.done ? 'opacity:0.55;' : ''}">
+      <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleCalTask('${t._id}')" style="width:20px; height:20px; cursor:pointer; flex:none;">
+      <span class="task-desc" style="${t.done ? 'text-decoration:line-through;' : ''}">${t.task}</span>
+      ${t.createdBy ? `<span style="font-size:11px; color:#666;">${t.createdBy}</span>` : ''}
+      <button class="action-btn delete" onclick="deleteCalTask('${t._id}')">🗑</button>
+    </li>`; }).join('');
+}
+
+function renderDashboardSchedule() {
+  const list = document.getElementById('dailySchedule');
+  if (!list) return;
+  list.innerHTML = data.settings.schedule.map(s => `<li class="task-item"><span class="task-time">${s.time}</span><span class="task-desc">${s.desc}</span>${s.priority === 'critical' ? '<span class="task-priority">Critical</span>' : ''}</li>`).join('');
+}
+
+window.updateSchedule = function(i, key, value) { data.settings.schedule[i][key] = value; };
+window.addScheduleItem = function() { data.settings.schedule.push({ time: '12:00', desc: 'New task', priority: '' }); renderScheduleSettings(); renderDashboardSchedule(); };
+window.removeSchedule = function(i) { data.settings.schedule.splice(i, 1); renderScheduleSettings(); renderDashboardSchedule(); };
+function renderScheduleSettings() {
+  const cont = document.getElementById('scheduleSettings');
+  if (!cont) return;
+  cont.innerHTML = data.settings.schedule.map((s, i) => `
+    <div class="setting-row"><div style="display:flex; gap:8px; align-items:center; flex:1;">
+      <input type="time" value="${s.time}" onchange="updateSchedule(${i}, 'time', this.value)" style="width:110px;">
+      <input type="text" value="${s.desc}" onchange="updateSchedule(${i}, 'desc', this.value)">
+      <select onchange="updateSchedule(${i}, 'priority', this.value)" style="width:120px;"><option value="" ${!s.priority?'selected':''}>Normal</option><option value="critical" ${s.priority==='critical'?'selected':''}>Critical</option></select>
+    </div><button class="action-btn delete" onclick="removeSchedule(${i})">🗑</button></div>`).join('');
+}
+
+window.updateTemp = function(i, key, value) { data.settings.temps[i][key] = value; populateSelects(); };
+window.addTempPreset = function() { data.settings.temps.push({ value: '22', label: 'Custom' }); renderTempSettings(); populateSelects(); };
+window.removeTemp = function(i) { data.settings.temps.splice(i, 1); renderTempSettings(); populateSelects(); };
+function renderTempSettings() {
+  const cont = document.getElementById('tempSettings');
+  if (!cont) return;
+  cont.innerHTML = data.settings.temps.map((t, i) => `
+    <div class="setting-row"><div style="display:flex; gap:8px; align-items:center; flex:1;">
+      <input type="number" step="0.1" value="${t.value}" onchange="updateTemp(${i}, 'value', this.value)" style="width:80px;"><span style="color:#888;">°C</span>
+      <input type="text" value="${t.label}" onchange="updateTemp(${i}, 'label', this.value)">
+    </div><button class="action-btn delete" onclick="removeTemp(${i})">🗑</button></div>`).join('');
+}
+
+window.updateStockType = function(i, value) { data.settings.stockTypes[i] = value; populateSelects(); };
+window.addStockType = function() { const n = prompt('New stock type:'); if (n) { data.settings.stockTypes.push(n); renderStockTypes(); populateSelects(); renderStockFilters(); } };
+window.removeStockType = function(i) { if (confirm('Remove?')) { data.settings.stockTypes.splice(i, 1); renderStockTypes(); populateSelects(); renderStockFilters(); } };
+function renderStockTypes() {
+  const cont = document.getElementById('stockTypesList');
+  if (!cont) return;
+  cont.innerHTML = `<div class="setting-group">${data.settings.stockTypes.map((t, i) => `<div class="setting-row"><input type="text" value="${t}" onchange="updateStockType(${i}, this.value)"><button class="action-btn delete" onclick="removeStockType(${i})">🗑</button></div>`).join('')}</div>`;
+}
+
+window.updateDefaultPheno = function(i, value) { data.settings.defaultPhenos[i] = value; };
+window.addDefaultPheno = function() { const n = prompt('New phenotype:'); if (n) { data.settings.defaultPhenos.push(n); renderDefaultPhenos(); } };
+window.removeDefaultPheno = function(i) { data.settings.defaultPhenos.splice(i, 1); renderDefaultPhenos(); };
+function renderDefaultPhenos() {
+  const cont = document.getElementById('defaultPhenosList');
+  if (!cont) return;
+  cont.innerHTML = `<div class="setting-group">${data.settings.defaultPhenos.map((p, i) => `<div class="setting-row"><input type="text" value="${p}" onchange="updateDefaultPheno(${i}, this.value)"><button class="action-btn delete" onclick="removeDefaultPheno(${i})">🗑</button></div>`).join('')}</div>`;
+}
+
+window.saveSettings = async function() {
+  data.settings.flipWarnDays = parseInt(document.getElementById('flipWarnDays').value) || 10;
+  data.settings.flipCritDays = parseInt(document.getElementById('flipCritDays').value) || 14;
+  data.settings.virginWindow25 = parseInt(document.getElementById('virginWindow25').value) || 12;
+  data.settings.virginWindow18 = parseInt(document.getElementById('virginWindow18').value) || 18;
+  await saveSettingsToCloud();
+  populateSelects(); renderDashboardSchedule(); refreshDashboard();
+  logActivity('edit', 'settings', 'Updated lab settings');
+  toast('Settings saved to cloud');
+};
+function loadSettingsInputs() {
+  if (document.getElementById('flipWarnDays')) {
+    document.getElementById('flipWarnDays').value = data.settings.flipWarnDays;
+    document.getElementById('flipCritDays').value = data.settings.flipCritDays;
+    document.getElementById('virginWindow25').value = data.settings.virginWindow25;
+    document.getElementById('virginWindow18').value = data.settings.virginWindow18;
+  }
+}
+
+window.renderStockFilters = function() {
+  const cont = document.getElementById('stockFilters');
+  if (!cont) return;
+  const types = ['all', ...data.settings.stockTypes, 'flip-due'];
+  cont.innerHTML = types.map(t => `<div class="filter-chip ${t === activeStockFilter ? 'active' : ''}" onclick="filterStocks('${t}', this)" ${t === 'flip-due' ? 'style="color:#e8b14e;"' : ''}>${t === 'all' ? 'All' : t === 'flip-due' ? '⚠ Flip due' : t}</div>`).join('');
+};
+function renderStockFilters() { window.renderStockFilters(); }
+window.filterStocks = function(filter, el) { activeStockFilter = filter; document.querySelectorAll('#stocks .filter-chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderStocks(); };
+
+window.addStock = async function() {
+  const stock = {
+    id: document.getElementById('stockId').value.trim(),
+    genotype: document.getElementById('stockGenotype').value.trim(),
+    name: document.getElementById('stockName').value.trim(),
+    type: document.getElementById('stockType').value,
+    source: document.getElementById('stockSource').value.trim(),
+    location: document.getElementById('stockLocation').value.trim(),
+    flipDate: document.getElementById('stockFlipDate').value,
+    chrom: document.getElementById('stockChrom').value,
+    notes: document.getElementById('stockNotes').value.trim()
+  };
+  if (!stock.id) { toast('Stock ID required'); return; }
+  await dbAdd('stocks', stock);
+  logActivity('create', 'Stocks', `Added stock "${stock.id}" (${stock.genotype})`);
+  ['stockId','stockGenotype','stockName','stockSource','stockLocation','stockNotes'].forEach(id => document.getElementById(id).value = '');
+  toast('Stock added');
+};
+window.deleteStock = async function(id) {
+  if (!canDelete()) { toast('No permission to delete'); return; }
+  const s = data.stocks.find(x => x._id === id);
+  if (confirm('Delete this stock?')) { await dbDelete('stocks', id); logActivity('delete', 'Stocks', `Deleted stock "${s.id}"`); }
+};
+window.markFlipped = async function(id) {
+  if (!canEdit()) { toast('No permission to edit'); return; }
+  const s = data.stocks.find(x => x._id === id);
+  await dbUpdate('stocks', id, { flipDate: new Date().toISOString().split('T')[0] });
+  logActivity('edit', 'Stocks', `Flipped stock "${s.id}"`);
+  toast('Flipped today');
+};
+function renderStocks() {
+  const tbody = document.getElementById('stockTableBody');
+  if (!tbody) return;
+  const search = document.getElementById('stockSearch')?.value.toLowerCase() || '';
+  const warnDays = data.settings.flipWarnDays, critDays = data.settings.flipCritDays;
+  let filtered = data.stocks.filter(s => {
+    if (search && !`${s.id} ${s.genotype} ${s.name}`.toLowerCase().includes(search)) return false;
+    if (activeStockFilter === 'all') return true;
+    if (activeStockFilter === 'flip-due') { if (!s.flipDate) return false; return (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > warnDays; }
+    return s.type === activeStockFilter;
+  });
+  document.getElementById('stockTotalCount').textContent = data.stocks.length;
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:#666;">No stocks</td></tr>'; return; }
+  tbody.innerHTML = filtered.map(s => {
+    const days = s.flipDate ? Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000) : null;
+    let flipStatus = '—', status = '<span class="badge b-active">OK</span>';
+    if (days !== null) {
+      if (days > critDays) { flipStatus = `<span style="color:#d95b5b;">⚠ ${days}d</span>`; status = '<span class="badge b-danger">FLIP NOW</span>'; }
+      else if (days > warnDays) { flipStatus = `<span style="color:#e8b14e;">${days}d</span>`; status = '<span class="badge b-warn">Soon</span>'; }
+      else flipStatus = `<span style="color:#7dd85d;">${days}d</span>`;
+    }
+    return `<tr><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:#888;">' + s.name + '</span>' : ''}</td>
+      <td style="font-family:monospace; font-size:12px;">${s.genotype || '—'}</td><td>${s.type || '—'}</td><td>${s.source || '—'}</td>
+      <td style="font-family:monospace; font-size:12px;">${s.location || '—'}</td><td>${flipStatus}</td><td>${status}</td>
+      <td><button class="action-btn edit-btn" onclick="markFlipped('${s._id}')">↻</button><button class="action-btn delete" onclick="deleteStock('${s._id}')">🗑</button></td></tr>`;
+  }).join('');
+}
+
+window.addCross = async function() {
+  const cross = {
+    id: document.getElementById('crossId').value.trim(),
+    gen: document.getElementById('crossGen').value,
+    date: document.getElementById('crossDate').value,
+    female: document.getElementById('crossFemale').value.trim(),
+    male: document.getElementById('crossMale').value.trim(),
+    container: document.getElementById('crossContainer').value,
+    nFemales: parseInt(document.getElementById('crossNFemales').value) || 0,
+    nMales: parseInt(document.getElementById('crossNMales').value) || 0,
+    temp: parseFloat(document.getElementById('crossTemp').value) || 25,
+    hypothesis: document.getElementById('crossHypothesis').value.trim(),
+    status: 'active'
+  };
+  if (!cross.id) { toast('Cross ID required'); return; }
+  await dbAdd('crosses', cross);
+  logActivity('create', 'Crosses', `Added cross "${cross.id}" (${cross.gen}): ${cross.female} × ${cross.male}`);
+  ['crossId','crossFemale','crossMale','crossHypothesis'].forEach(id => document.getElementById(id).value = '');
+  toast('Cross added');
+};
+window.filterCrosses = function(filter, el) { activeCrossFilter = filter; document.querySelectorAll('#crosses .filter-chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderCrosses(); };
+window.toggleCrossStatus = async function(id) {
+  if (!canEdit()) { toast('No permission to edit'); return; }
+  const c = data.crosses.find(x => x._id === id);
+  const ns = c.status === 'active' ? 'complete' : 'active';
+  await dbUpdate('crosses', id, { status: ns });
+  logActivity('edit', 'Crosses', `Cross "${c.id}" → ${ns}`);
+};
+window.deleteCross = async function(id) {
+  if (!canDelete()) { toast('No permission to delete'); return; }
+  const c = data.crosses.find(x => x._id === id);
+  if (confirm('Delete this cross?')) { await dbDelete('crosses', id); logActivity('delete', 'Crosses', `Deleted cross "${c.id}"`); }
+};
+function renderCrosses() {
+  const tbody = document.getElementById('crossTableBody');
+  if (!tbody) return;
+  let filtered = data.crosses.filter(c => {
+    if (activeCrossFilter === 'all') return true;
+    if (activeCrossFilter === 'active' || activeCrossFilter === 'complete') return c.status === activeCrossFilter;
+    return c.gen === activeCrossFilter;
+  });
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:#666;">No crosses</td></tr>'; return; }
+  tbody.innerHTML = filtered.map(c => {
+    const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0;
+    return `<tr><td><strong>${c.id}</strong></td><td><span class="badge b-${c.gen.toLowerCase()}">${c.gen}</span></td>
+      <td style="font-family:monospace; font-size:11px;">${c.female || '?'} <span style="color:#888;">×</span> ${c.male || '?'}</td>
+      <td>${c.date ? new Date(c.date).toLocaleDateString() : '—'}</td><td><strong>Day ${day}</strong></td>
+      <td>${c.temp || 25}°C</td><td><span class="badge b-${c.status === 'active' ? 'active' : 'done'}">${c.status}</span></td>
+      <td><button class="action-btn edit-btn" onclick="toggleCrossStatus('${c._id}')">✓</button><button class="action-btn delete" onclick="deleteCross('${c._id}')">🗑</button></td></tr>`;
+  }).join('');
+}
+
+window.addVirgin = async function() {
+  const v = {
+    date: document.getElementById('virginDate').value,
+    time: document.getElementById('virginTime').value,
+    session: document.getElementById('virginSession').value,
+    source: document.getElementById('virginSource').value.trim(),
+    females: parseInt(document.getElementById('virginFemales').value) || 0,
+    males: parseInt(document.getElementById('virginMales').value) || 0,
+    container: document.getElementById('virginContainer').value.trim(),
+    temp: document.getElementById('virginTemp').value,
+    notes: document.getElementById('virginNotes').value.trim()
+  };
+  if (!v.date) { toast('Date required'); return; }
+  await dbAdd('virgins', v);
+  logActivity('create', 'Virgins', `Logged ${v.females}♀ ${v.males}♂ from "${v.source}" (${v.session})`);
+  document.getElementById('virginFemales').value = 0;
+  document.getElementById('virginMales').value = 0;
+  document.getElementById('virginNotes').value = '';
+  toast('Collection logged');
+};
+window.deleteVirgin = async function(id) {
+  if (!canDelete()) { toast('No permission to delete'); return; }
+  const v = data.virgins.find(x => x._id === id);
+  if (confirm('Delete?')) { await dbDelete('virgins', id); logActivity('delete', 'Virgins', `Deleted collection from ${new Date(v.date).toLocaleDateString()}`); }
+};
+function renderVirgins() {
+  const tbody = document.getElementById('virginTableBody');
+  if (!tbody) return;
+  const sorted = [...data.virgins].sort((a,b) => (b.created||0) - (a.created||0));
+  if (sorted.length === 0) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:#666;">No collections</td></tr>';
+  else tbody.innerHTML = sorted.map(v => `<tr><td>${new Date(v.date).toLocaleDateString()}</td><td style="font-family:monospace;">${v.time || '—'}</td>
+      <td><span class="badge ${v.session === 'AM' ? 'b-f1' : 'b-f2'}">${v.session}</span></td><td>${v.source || '—'}</td>
+      <td><span class="badge b-female">${v.females}</span></td><td><span class="badge b-male">${v.males}</span></td>
+      <td>${v.container || '—'}</td><td>${v.temp}°C</td>
+      <td><button class="action-btn delete" onclick="deleteVirgin('${v._id}')">🗑</button></td></tr>`).join('');
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
+  const td = document.getElementById('virginsTodayDetail'), tw = document.getElementById('virginsWeek'), ta = document.getElementById('virginsAll');
+  if (td) td.textContent = data.virgins.filter(v => v.date === today).reduce((s,v) => s + v.females + v.males, 0);
+  if (tw) tw.textContent = data.virgins.filter(v => v.date >= weekAgo).reduce((s,v) => s + v.females + v.males, 0);
+  if (ta) ta.textContent = data.virgins.reduce((s,v) => s + v.females + v.males, 0);
+}
+
+window.adjustCounter = function(i, delta) { const inp = document.getElementById(`counter-${i}`); inp.value = Math.max(0, parseInt(inp.value) + delta); };
+window.addPhenoCategory = function() { const n = prompt('Category:'); if (n && n.trim()) { phenoCategories.push(n.trim()); renderPhenoCounters(); } };
+window.removeCategory = function(i) { if (phenoCategories.length <= 1) { toast('Keep one'); return; } phenoCategories.splice(i, 1); renderPhenoCounters(); };
+window.resetCounters = function() { phenoCategories = [...data.settings.defaultPhenos]; renderPhenoCounters(); };
+function renderPhenoCounters() {
+  const cont = document.getElementById('phenoCounters');
+  if (!cont) return;
+  cont.innerHTML = phenoCategories.map((cat, i) => `<div class="phenotype-counter"><label style="text-transform:none; letter-spacing:0;">${cat}</label>
+    <div class="counter-controls"><button class="counter-btn" onclick="adjustCounter(${i}, -1)">−</button>
+    <input type="number" id="counter-${i}" value="0" min="0" style="background:transparent;border:none;text-align:center;color:#fff;width:60px;font-size:24px;font-weight:500;">
+    <button class="counter-btn" onclick="adjustCounter(${i}, 1)">+</button></div>
+    <button class="action-btn delete" onclick="removeCategory(${i})" style="font-size:10px;">remove</button></div>`).join('');
+}
+window.savePhenotype = async function() {
+  const counts = {};
+  let total = 0;
+  phenoCategories.forEach((cat, i) => { const v = parseInt(document.getElementById(`counter-${i}`).value) || 0; counts[cat] = v; total += v; });
+  const p = { vial: document.getElementById('phenoVial').value.trim(), gen: document.getElementById('phenoGen').value, date: document.getElementById('phenoDate').value, counts, total, notes: document.getElementById('phenoNotes').value.trim() };
+  if (!p.vial || total === 0) { toast('Vial ID and counts required'); return; }
+  await dbAdd('phenotypes', p);
+  logActivity('create', 'Phenotyping', `Scored "${p.vial}" (${p.gen}), n=${total}`);
+  resetCounters();
+  document.getElementById('phenoNotes').value = '';
+  toast('Saved');
+};
+window.deletePheno = async function(id) {
+  if (!canDelete()) { toast('No permission to delete'); return; }
+  const p = data.phenotypes.find(x => x._id === id);
+  if (confirm('Delete?')) { await dbDelete('phenotypes', id); logActivity('delete', 'Phenotyping', `Deleted scoring of "${p.vial}"`); }
+};
+function renderPhenotypes() {
+  const tbody = document.getElementById('phenoTableBody');
+  if (!tbody) return;
+  const sorted = [...data.phenotypes].sort((a,b) => (b.created||0) - (a.created||0));
+  if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:#666;">No data</td></tr>'; return; }
+  tbody.innerHTML = sorted.map(p => {
+    const summary = Object.entries(p.counts).filter(([_,v]) => v > 0).map(([k,v]) => `${k}: ${v}`).join(' • ');
+    return `<tr><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${p.vial}</strong></td>
+      <td><span class="badge b-${p.gen.toLowerCase()}">${p.gen}</span></td><td style="font-size:11px;">${summary}</td>
+      <td><strong>${p.total}</strong></td><td style="font-size:11px; color:#888;">${(p.notes || '').substring(0, 30)}</td>
+      <td><button class="action-btn delete" onclick="deletePheno('${p._id}')">🗑</button></td></tr>`;
+  }).join('');
+}
+window.quickChiSquare = function() {
+  const counts = phenoCategories.map((_, i) => parseInt(document.getElementById(`counter-${i}`).value) || 0);
+  const nonZero = counts.filter(c => c > 0);
+  if (nonZero.length < 2) { toast('Need 2+ categories'); return; }
+  const total = nonZero.reduce((a,b) => a+b, 0);
+  const expected = total / nonZero.length;
+  let chi = 0;
+  nonZero.forEach(o => { chi += Math.pow(o - expected, 2) / expected; });
+  const df = nonZero.length - 1;
+  const critical = [3.84, 5.99, 7.81, 9.49, 11.07][df-1] || 12;
+  const sig = chi > critical;
+  document.getElementById('chiResult').innerHTML = `<div class="chi-result"><h4 style="color:#fff; margin-bottom:8px;">📐 Chi-square (equal ratio)</h4>
+    <div class="chi-value">χ² = ${chi.toFixed(3)}</div><div class="chi-detail">df = ${df} | critical (α=0.05) = ${critical} | n = ${total}</div>
+    <div class="significance ${sig ? 'sig-fail' : 'sig-pass'}">${sig ? '✗ Significant deviation' : '✓ No significant deviation'}</div></div>`;
+};
+
+window.addNote = async function() {
+  const n = { date: document.getElementById('noteDate').value, title: document.getElementById('noteTitle').value.trim(), hypothesis: document.getElementById('noteHypothesis').value.trim(), methods: document.getElementById('noteMethods').value.trim(), results: document.getElementById('noteResults').value.trim(), conclusion: document.getElementById('noteConclusion').value.trim(), tags: document.getElementById('noteTags').value.trim() };
+  if (!n.date || !n.title) { toast('Date and title required'); return; }
+  await dbAdd('notes', n);
+  logActivity('create', 'Notebook', `Added entry "${n.title}"`);
+  ['noteTitle','noteHypothesis','noteMethods','noteResults','noteConclusion','noteTags'].forEach(id => document.getElementById(id).value = '');
+  toast('Saved');
+};
+window.deleteNote = async function(id) {
+  if (!canDelete()) { toast('No permission to delete'); return; }
+  const n = data.notes.find(x => x._id === id);
+  if (confirm('Delete entry?')) { await dbDelete('notes', id); logActivity('delete', 'Notebook', `Deleted entry "${n.title}"`); }
+};
+function renderNotes() {
+  const list = document.getElementById('notesList');
+  if (!list) return;
+  const search = document.getElementById('noteSearch')?.value.toLowerCase() || '';
+  const sorted = [...data.notes].sort((a,b) => (b.created||0) - (a.created||0));
+  let filtered = sorted.filter(n => !search || `${n.title} ${n.hypothesis} ${n.methods} ${n.results} ${n.conclusion} ${n.tags}`.toLowerCase().includes(search));
+  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state"><div class="icon">📓</div><p>No entries</p></div>'; return; }
+  list.innerHTML = filtered.map(n => `<div class="note-entry"><div class="note-header"><div class="note-title">${n.title}</div><div class="note-date">${new Date(n.date).toLocaleDateString()}${n.createdBy ? ' • ' + n.createdBy : ''}</div></div>
+      ${n.hypothesis ? `<div class="note-section"><strong>Hypothesis</strong><div>${n.hypothesis}</div></div>` : ''}
+      ${n.methods ? `<div class="note-section"><strong>Methods</strong><div>${n.methods}</div></div>` : ''}
+      ${n.results ? `<div class="note-section"><strong>Results</strong><div>${n.results}</div></div>` : ''}
+      ${n.conclusion ? `<div class="note-section"><strong>Conclusions</strong><div>${n.conclusion}</div></div>` : ''}
+      ${n.tags ? `<div style="margin-top:8px;">${n.tags.split(',').map(t => `<span class="badge b-wt" style="margin-right:4px;">#${t.trim()}</span>`).join('')}</div>` : ''}
+      <div style="text-align:right; margin-top:8px;"><button class="action-btn delete" onclick="deleteNote('${n._id}')">🗑 Delete</button></div></div>`).join('');
+}
+
+window.handleProtocolFile = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  if (file.size > 800 * 1024) { alert('File too large (max 800KB for cloud sync). Compress the PDF or store a link instead.'); e.target.value = ''; return; }
+  const reader = new FileReader();
+  reader.onload = ev => { pendingProtocolFile = { name: file.name, type: file.type, size: file.size, data: ev.target.result }; document.getElementById('protocolFileInfo').innerHTML = `✓ Attached: <strong>${file.name}</strong> (${(file.size/1024).toFixed(0)} KB)`; };
+  reader.readAsDataURL(file);
+};
+window.openProtocolModal = function(id) {
+  if (id && !canEdit()) { toast('No permission to edit'); return; }
+  editingProtocolIdx = id || null;
+  pendingProtocolFile = null;
+  document.getElementById('protocolModalTitle').textContent = id ? 'Edit protocol' : 'Add protocol';
+  document.getElementById('protocolFile').value = '';
+  if (id) {
+    const p = data.protocols.find(x => x._id === id);
+    document.getElementById('protocolName').value = p.name || '';
+    document.getElementById('protocolCategory').value = p.category || '';
+    document.getElementById('protocolDuration').value = p.duration || '';
+    document.getElementById('protocolMaterials').value = p.materials || '';
+    document.getElementById('protocolSteps').value = p.steps || '';
+    document.getElementById('protocolNotes').value = p.notes || '';
+    document.getElementById('protocolFileInfo').innerHTML = p.file ? `📎 Current: <strong>${p.file.name}</strong>` : '';
+  } else {
+    ['protocolName','protocolCategory','protocolDuration','protocolMaterials','protocolSteps','protocolNotes'].forEach(idd => document.getElementById(idd).value = '');
+    document.getElementById('protocolFileInfo').innerHTML = '';
+  }
+  document.getElementById('protocolModal').classList.remove('hidden');
+};
+window.closeProtocolModal = function() { document.getElementById('protocolModal').classList.add('hidden'); editingProtocolIdx = null; pendingProtocolFile = null; };
+window.saveProtocol = async function() {
+  const p = { name: document.getElementById('protocolName').value.trim(), category: document.getElementById('protocolCategory').value.trim() || 'general', duration: document.getElementById('protocolDuration').value.trim(), materials: document.getElementById('protocolMaterials').value.trim(), steps: document.getElementById('protocolSteps').value.trim(), notes: document.getElementById('protocolNotes').value.trim() };
+  if (!p.name) { toast('Name required'); return; }
+  if (editingProtocolIdx) {
+    const existing = data.protocols.find(x => x._id === editingProtocolIdx);
+    if (pendingProtocolFile) p.file = pendingProtocolFile;
+    else if (existing.file) p.file = existing.file;
+    await dbUpdate('protocols', editingProtocolIdx, p);
+    logActivity('edit', 'Protocols', `Edited protocol "${p.name}"`);
+  } else {
+    if (pendingProtocolFile) p.file = pendingProtocolFile;
+    await dbAdd('protocols', p);
+    logActivity('create', 'Protocols', `Added protocol "${p.name}"${p.file ? ' with file ' + p.file.name : ''}`);
+  }
+  closeProtocolModal();
+  toast('Saved to cloud');
+};
+window.deleteProtocol = async function(id) {
+  if (!canDelete()) { toast('No permission to delete'); return; }
+  const p = data.protocols.find(x => x._id === id);
+  if (confirm('Delete this protocol?')) { await dbDelete('protocols', id); logActivity('delete', 'Protocols', `Deleted protocol "${p.name}"`); }
+};
+window.downloadProtocolFile = function(id) {
+  const p = data.protocols.find(x => x._id === id);
+  if (!p.file) return;
+  const a = document.createElement('a');
+  a.href = p.file.data; a.download = p.file.name; a.click();
+};
+window.loadDefaultProtocols = async function() {
+  if (data.protocols.length > 0 && !confirm('Add default protocols?')) return;
+  for (const p of defaultProtocols) { await dbAdd('protocols', { ...p }); }
+  logActivity('create', 'Protocols', `Loaded ${defaultProtocols.length} default protocols`);
+  toast(`Added ${defaultProtocols.length} protocols`);
+};
+window.filterProtocols = function(filter, el) { activeProtocolFilter = filter; document.querySelectorAll('#protocolFilters .filter-chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderProtocols(); };
+function renderProtocolFilters() {
+  const cont = document.getElementById('protocolFilters');
+  if (!cont) return;
+  const cats = ['all', ...new Set(data.protocols.map(p => p.category))];
+  cont.innerHTML = cats.map(c => `<div class="filter-chip ${c === activeProtocolFilter ? 'active' : ''}" onclick="filterProtocols('${c}', this)">${c === 'all' ? 'All' : c}</div>`).join('');
+}
+function renderProtocols() {
+  const list = document.getElementById('protocolsList');
+  if (!list) return;
+  renderProtocolFilters();
+  const search = document.getElementById('protocolSearch')?.value.toLowerCase() || '';
+  let filtered = data.protocols.filter(p => {
+    if (activeProtocolFilter !== 'all' && p.category !== activeProtocolFilter) return false;
+    if (search && !`${p.name} ${p.category} ${p.materials} ${p.steps} ${p.notes}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No protocols. Click "Load defaults" or add your own.</p></div>'; return; }
+  list.innerHTML = filtered.map(p => {
+    const fileIcon = p.file ? (p.file.name.endsWith('.pdf') ? '📄' : '📝') : '';
+    return `<div class="protocol-card"><div class="protocol-header"><div><div class="protocol-title">${p.name}</div><div class="protocol-meta">${p.category} ${p.duration ? '• ' + p.duration : ''}</div></div>
+      <div><button class="action-btn edit-btn" onclick="openProtocolModal('${p._id}')">✏️</button><button class="action-btn delete" onclick="deleteProtocol('${p._id}')">🗑</button></div></div>
+      ${p.materials ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:#888; text-transform:uppercase;">Materials</strong><div class="protocol-body">${p.materials}</div></div>` : ''}
+      ${p.steps ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:#888; text-transform:uppercase;">Steps</strong><div class="protocol-body">${p.steps}</div></div>` : ''}
+      ${p.notes ? `<div><strong style="font-size:11px; color:#888; text-transform:uppercase;">Notes</strong><div class="protocol-body">${p.notes}</div></div>` : ''}
+      ${p.file ? `<div class="file-attach" onclick="downloadProtocolFile('${p._id}')">${fileIcon} ${p.file.name} <span style="color:#888; font-size:11px;">(${(p.file.size/1024).toFixed(0)} KB) — click to download</span></div>` : ''}</div>`;
+  }).join('');
+}
+
+// ===== LOGS =====
+window.filterLogs = function(filter, el) { activeLogFilter = filter; document.querySelectorAll('#logFilters .filter-chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderLogs(); };
+function renderLogFilters() {
+  const cont = document.getElementById('logFilters');
+  if (!cont) return;
+  const filters = ['all', 'create', 'edit', 'delete', 'login'];
+  cont.innerHTML = filters.map(f => `<div class="filter-chip ${f === activeLogFilter ? 'active' : ''}" onclick="filterLogs('${f}', this)">${f === 'all' ? 'All' : f}</div>`).join('');
+}
+async function purgeOldLogs() {
+  if (!currentProfile || currentProfile.role !== 'super_admin') return;
+  const cutoff = Date.now() - 30 * 86400000;
+  const oldLogs = data.logs.filter(l => l.timestamp < cutoff);
+  if (oldLogs.length === 0) return;
+  setSyncStatus('syncing');
+  for (const l of oldLogs) {
+    try { await deleteDoc(doc(db, 'logs', l._id)); } catch (e) { console.error('purge failed', e); }
+  }
+  setSyncStatus('synced');
+  toast(`Purged ${oldLogs.length} logs older than 30 days`);
+}
+function renderLogs() {
+  if (!currentProfile || currentProfile.role !== 'super_admin') return;
+  const tbody = document.getElementById('logTableBody');
+  if (!tbody) return;
+  const search = document.getElementById('logSearch')?.value.toLowerCase() || '';
+  let filtered = data.logs.filter(l => {
+    if (activeLogFilter !== 'all' && l.action !== activeLogFilter) return false;
+    if (search && !`${l.user} ${l.module} ${l.action} ${l.details}`.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('logTotal').textContent = data.logs.length;
+  document.getElementById('logToday').textContent = data.logs.filter(l => new Date(l.timestamp).toISOString().split('T')[0] === today).length;
+  document.getElementById('logCreates').textContent = data.logs.filter(l => l.action === 'create').length;
+  document.getElementById('logDeletes').textContent = data.logs.filter(l => l.action === 'delete').length;
+  renderLogFilters();
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:#666;">No log entries</td></tr>'; return; }
+  tbody.innerHTML = filtered.slice(0, 500).map(l => {
+    const d = new Date(l.timestamp);
+    return `<tr><td style="font-family:monospace; font-size:12px;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</td>
+      <td><strong>${l.user}</strong></td><td>${roleBadge(l.role)}</td>
+      <td><span class="badge b-${l.action === 'create' ? 'create' : l.action === 'edit' ? 'edit' : l.action === 'delete' ? 'delete' : 'user'}">${l.action}</span></td>
+      <td>${l.module}</td><td style="font-size:12px; color:#bbb;">${l.details}</td></tr>`;
+  }).join('');
+}
+window.exportLogs = function() {
+  const wb = XLSX.utils.book_new();
+  const wsData = data.logs.map(l => ({ 'Date': new Date(l.timestamp).toLocaleDateString(), 'Time': new Date(l.timestamp).toLocaleTimeString(), 'User': l.user, 'Role': l.role, 'Action': l.action, 'Module': l.module, 'Details': l.details }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(wsData), 'Activity Log');
+  XLSX.writeFile(wb, `flylab-log-${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast('Log exported');
+};
+
+// ===== USERS =====
+window.changeUserRole = async function(uid, role) {
+  if (!canManageRoles()) { toast('Only Super Admin can change roles'); return; }
+  await updateDoc(doc(db, 'users', uid), { role });
+  logActivity('edit', 'users', `Changed role to ${role}`);
+  toast('Role updated');
+};
+function roleBadge(r) {
+  if (r === 'super_admin') return '<span class="badge b-admin">⭐ Super</span>';
+  if (r === 'admin') return '<span class="badge b-admin">🛡️ Admin</span>';
+  return '<span class="badge b-user">Regular</span>';
+}
+function renderUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  if (!tbody || !data.users) return;
+  tbody.innerHTML = data.users.map(u => {
+    const actionCount = data.logs.filter(l => l.user === u.name).length;
+    return `<tr><td><strong>${u.name}</strong>${u.email === currentProfile.email ? ' <span style="color:#4a9eff;">(you)</span>' : ''}</td>
+      <td style="font-size:12px;">${u.email}</td>
+      <td><select onchange="changeUserRole('${u._id}', this.value)" style="width:auto; padding:4px 8px;">
+        <option value="regular" ${u.role==='regular'?'selected':''}>Regular</option>
+        <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
+        <option value="super_admin" ${u.role==='super_admin'?'selected':''}>Super Admin</option>
+      </select></td>
+      <td>${u.created ? new Date(u.created).toLocaleDateString() : '—'}</td><td>${actionCount}</td><td></td></tr>`;
+  }).join('');
+}
+
+function refreshDashboard() {
+  const sc = document.getElementById('stockCount'), cc = document.getElementById('crossCount'), vt = document.getElementById('virginToday'), fa = document.getElementById('flipAlert');
+  if (sc) sc.textContent = data.stocks.length;
+  if (cc) cc.textContent = data.crosses.filter(c => c.status === 'active').length;
+  const today = new Date().toISOString().split('T')[0];
+  if (vt) vt.textContent = data.virgins.filter(v => v.date === today).reduce((s,v) => s + v.females + v.males, 0);
+  const flipsDue = data.stocks.filter(s => s.flipDate && (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > data.settings.flipWarnDays);
+  if (fa) fa.textContent = flipsDue.length;
+  const flipList = document.getElementById('flipList');
+  if (flipList) flipList.innerHTML = flipsDue.length === 0 ? '<div class="empty-state"><p>✓ All current</p></div>' : flipsDue.slice(0, 5).map(s => { const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000); return `<li class="task-item"><span class="task-time" style="color:#e8b14e;">${days}d</span><span class="task-desc"><strong>${s.id}</strong> — ${s.genotype || s.name || ''}</span><span class="task-priority">Flip!</span></li>`; }).join('');
+  const activeCrossList = document.getElementById('activeCrossList');
+  if (activeCrossList) { const active = data.crosses.filter(c => c.status === 'active').slice(0, 5); activeCrossList.innerHTML = active.length === 0 ? '<div class="empty-state"><p>No active crosses</p></div>' : active.map(c => { const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0; return `<li class="task-item"><span class="task-time">Day ${day}</span><span class="task-desc"><strong>${c.id}</strong> (${c.gen}) — ${c.female} × ${c.male}</span></li>`; }).join(''); }
+}
+
+window.toggleExportMenu = function() { document.getElementById('exportDropdown').classList.toggle('hidden'); };
+document.addEventListener('click', e => { if (!e.target.closest('.export-menu')) document.getElementById('exportDropdown')?.classList.add('hidden'); });
+window.exportXLSX = function() {
+  const wb = XLSX.utils.book_new();
+  if (data.stocks.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.stocks.map(s => ({ 'Stock ID': s.id, 'Name': s.name, 'Genotype': s.genotype, 'Type': s.type, 'Source': s.source, 'Location': s.location, 'Chromosome': s.chrom, 'Last Flip': s.flipDate, 'Notes': s.notes }))), 'Stocks');
+  if (data.crosses.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.crosses.map(c => ({ 'Cross ID': c.id, 'Gen': c.gen, 'Date': c.date, 'Female': c.female, 'Male': c.male, 'Container': c.container, '#F': c.nFemales, '#M': c.nMales, 'Temp': c.temp, 'Hypothesis': c.hypothesis, 'Status': c.status }))), 'Crosses');
+  if (data.virgins.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.virgins.map(v => ({ 'Date': v.date, 'Time': v.time, 'Session': v.session, 'Source': v.source, 'Females': v.females, 'Males': v.males, 'Container': v.container, 'Temp': v.temp, 'Notes': v.notes }))), 'Virgins');
+  if (data.phenotypes.length) { const cats = [...new Set(data.phenotypes.flatMap(p => Object.keys(p.counts)))]; XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.phenotypes.map(p => { const r = { 'Date': p.date, 'Vial': p.vial, 'Gen': p.gen }; cats.forEach(c => r[c] = p.counts[c] || 0); r['Total'] = p.total; r['Notes'] = p.notes; return r; })), 'Phenotypes'); }
+  if (data.notes.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.notes.map(n => ({ 'Date': n.date, 'Title': n.title, 'Hypothesis': n.hypothesis, 'Methods': n.methods, 'Results': n.results, 'Conclusion': n.conclusion, 'Tags': n.tags }))), 'Notebook');
+  if (data.protocols.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.protocols.map(p => ({ 'Name': p.name, 'Category': p.category, 'Duration': p.duration, 'Materials': p.materials, 'Steps': p.steps, 'Notes': p.notes, 'File': p.file ? p.file.name : '' }))), 'Protocols');
+  if (currentProfile.role === 'super_admin' && data.logs.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(data.logs.map(l => ({ 'Date': new Date(l.timestamp).toLocaleDateString(), 'Time': new Date(l.timestamp).toLocaleTimeString(), 'User': l.user, 'Role': l.role, 'Action': l.action, 'Module': l.module, 'Details': l.details }))), 'Activity Log');
+  if (wb.SheetNames.length === 0) { toast('No data'); return; }
+  XLSX.writeFile(wb, `flylab-data-${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast('Excel downloaded');
+};
+</script>
+</body>
+</html>
