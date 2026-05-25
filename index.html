@@ -904,7 +904,7 @@ body.no-edit .action-btn.delete, body.no-edit .action-btn.edit-btn, body.no-edit
       </div>
       <div class="search-bar"><span>🔍</span><input type="text" id="logSearch" placeholder="Search..." oninput="renderLogs()"></div>
       <div class="filter-row" id="logFilters"></div>
-      <div class="btn-row" style="margin-top:0; margin-bottom:1rem;"><button class="btn btn-sm" onclick="exportLogs()">📥 Export log</button></div>
+      <div class="btn-row" style="margin-top:0; margin-bottom:1rem;"><button class="btn btn-sm" onclick="exportLogs()">📥 Export log</button><button class="btn btn-sm" onclick="purgeOldLogsManual()">🧹 Clear logs older than 30 days</button><button class="btn btn-sm btn-danger" onclick="clearAllLogs()">🗑 Delete all logs</button></div>
       <div class="table-wrap"><table><thead><tr><th>Date & time</th><th>User</th><th>Role</th><th>Action</th><th>Module</th><th>Details</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
     </div>
   </div>
@@ -1234,7 +1234,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById(btn.dataset.tab).classList.remove('hidden');
     refreshDashboard();
-    if (btn.dataset.tab === 'logs') { renderLogs(); purgeOldLogs(); }
+    if (btn.dataset.tab === 'logs') renderLogs();
     if (btn.dataset.tab === 'calendar') renderCalendarDay();
     if (btn.dataset.tab === 'users') renderUsers();
   });
@@ -1850,18 +1850,39 @@ function renderLogFilters() {
   const filters = ['all', 'create', 'edit', 'delete', 'login'];
   cont.innerHTML = filters.map(f => `<div class="filter-chip ${f === activeLogFilter ? 'active' : ''}" onclick="filterLogs('${f}', this)">${f === 'all' ? 'All' : f}</div>`).join('');
 }
-async function purgeOldLogs() {
-  if (!currentProfile || currentProfile.role !== 'super_admin') return;
-  const cutoff = Date.now() - 30 * 86400000;
-  const oldLogs = data.logs.filter(l => l.timestamp < cutoff);
-  if (oldLogs.length === 0) return;
+// Shared helper: delete a list of log docs
+async function deleteLogDocs(logs) {
   setSyncStatus('syncing');
-  for (const l of oldLogs) {
-    try { await deleteDoc(doc(db, 'logs', l._id)); } catch (e) { console.error('purge failed', e); }
+  let ok = 0;
+  for (const l of logs) {
+    try { await deleteDoc(doc(db, 'logs', l._id)); ok++; } catch (e) { console.error('log delete failed', e); }
   }
   setSyncStatus('synced');
-  toast(`Purged ${oldLogs.length} logs older than 30 days`);
+  return ok;
 }
+
+// Manual: clear logs older than 30 days (button)
+window.purgeOldLogsManual = async function() {
+  if (!currentProfile || currentProfile.role !== 'super_admin') { toast('Only Super Admin can clear logs'); return; }
+  const cutoff = Date.now() - 30 * 86400000;
+  const oldLogs = data.logs.filter(l => l.timestamp < cutoff);
+  if (oldLogs.length === 0) { toast('No logs older than 30 days'); return; }
+  if (!confirm(`Delete ${oldLogs.length} log${oldLogs.length === 1 ? '' : 's'} older than 30 days? This cannot be undone.`)) return;
+  const n = await deleteLogDocs(oldLogs);
+  toast(`Deleted ${n} old log${n === 1 ? '' : 's'}`);
+};
+
+// Manual: delete ALL logs (button)
+window.clearAllLogs = async function() {
+  if (!currentProfile || currentProfile.role !== 'super_admin') { toast('Only Super Admin can clear logs'); return; }
+  if (data.logs.length === 0) { toast('No logs to delete'); return; }
+  if (!confirm(`Delete ALL ${data.logs.length} logs? This permanently erases the entire activity history and cannot be undone.`)) return;
+  // double-confirm for the destructive "all" action
+  if (!confirm('Are you absolutely sure? This wipes the whole log.')) return;
+  const n = await deleteLogDocs([...data.logs]);
+  toast(`Deleted all ${n} logs`);
+};
+
 function renderLogs() {
   if (!currentProfile || currentProfile.role !== 'super_admin') return;
   const tbody = document.getElementById('logTableBody');
