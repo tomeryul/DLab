@@ -24,7 +24,7 @@
 <div id="loadingScreen" class="login-screen">
   <div class="login-box" style="text-align:center;">
     <div class="logo" style="justify-content:center;"><div class="logo-icon">🪰</div><div><h1>FlyLab Pro</h1></div></div>
-    <p style="color:#888; margin-top:1rem;">Connecting to cloud...</p>
+    <p style="color:var(--text-muted); margin-top:1rem;">Connecting to cloud...</p>
   </div>
 </div>
 
@@ -37,7 +37,7 @@
     </div>
     <div id="signupNameRow" class="hidden" style="margin-bottom:12px;">
       <label>Your name</label><input type="text" id="authName" placeholder="e.g., Sarah Cohen">
-      <p style="font-size:11px; color:#888; margin-top:4px;">New accounts start as Regular users. A Super Admin can upgrade you later.</p>
+      <p style="font-size:11px; color:var(--text-muted); margin-top:4px;">New accounts start as Regular users. A Super Admin can upgrade you later.</p>
     </div>
     <div style="margin-bottom:12px;"><label>Email</label><input type="email" id="authEmail" placeholder="you@lab.edu"></div>
     <div style="margin-bottom:12px;"><label>Password</label><input type="password" id="authPassword" placeholder="At least 6 characters"></div>
@@ -100,13 +100,13 @@
 
   <div id="dashboard" class="tab-content">
     <div class="card">
-      <h2>👋 Welcome back, <span id="welcomeName"></span>!</h2>
-      <p style="color:var(--text-muted); font-size:14px; margin-bottom:1rem;" id="dateDisplay"></p>
+      <h2>👋 Welcome back, <span id="welcomeName"></span></h2>
+      <p class="section-sub" id="dateDisplay"></p>
       <div class="grid grid-4">
         <div class="stat-card"><div class="stat-label">Active Stocks</div><div class="stat-value" id="stockCount">0</div></div>
         <div class="stat-card"><div class="stat-label">Active Crosses</div><div class="stat-value" id="crossCount">0</div></div>
         <div class="stat-card"><div class="stat-label">Virgins Today</div><div class="stat-value" id="virginToday">0</div></div>
-        <div class="stat-card"><div class="stat-label">Flip Alerts</div><div class="stat-value" id="flipAlert" style="color:#e8b14e;">0</div></div>
+        <div class="stat-card"><div class="stat-label">Flip Alerts</div><div class="stat-value" id="flipAlert" style="color:var(--warn);">0</div></div>
       </div>
     </div>
     <div class="card"><h2>⏰ Today's schedule</h2><ul class="task-list" id="dailySchedule"></ul></div>
@@ -137,7 +137,7 @@
     </div>
     <div class="card">
       <h2>🔁 Recurring task list <span class="badge b-wt">editable</span></h2>
-      <p style="color:#888; font-size:12px; margin-bottom:1rem;">Tasks you can add to any day. Shared across the lab.</p>
+      <p class="section-sub">Tasks you can add to any day. Shared across the lab.</p>
       <div class="form-row grid-2" style="margin-bottom:0;">
         <div><input type="text" id="newRecurTask" placeholder="e.g., Collect virgins from S001"></div>
         <div style="display:flex; align-items:flex-start;"><button class="btn btn-sm" onclick="addRecurTask()">+ Add task to list</button></div>
@@ -167,7 +167,7 @@
       <div class="btn-row"><button class="btn btn-primary" onclick="addStock()">+ Add stock</button></div>
     </div>
     <div class="card">
-      <h2>📚 Stock library <span style="font-size:12px; color:#888;">(<span id="stockTotalCount">0</span>)</span></h2>
+      <h2>📚 Stock library <span style="font-size:12px; color:var(--text-muted);">(<span id="stockTotalCount">0</span>)</span></h2>
       <div class="search-bar"><span>🔍</span><input type="text" id="stockSearch" placeholder="Search..." oninput="renderStocks()"></div>
       <div class="filter-row" id="stockFilters"></div>
       <div class="table-wrap"><table><thead><tr><th>ID</th><th>Genotype</th><th>Type</th><th>Source</th><th>Location</th><th>Flip</th><th>Status</th><th></th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
@@ -305,7 +305,7 @@
   <div id="settings" class="tab-content hidden">
     <div class="card">
       <h2>🎨 Appearance</h2>
-      <p style="color:var(--text-muted); font-size:12px; margin-bottom:1rem;">Choose your theme — saved on this device.</p>
+      <p class="section-sub">Choose your theme — saved on this device.</p>
       <div class="theme-picker" id="themePicker"></div>
     </div>
     <div class="card">
@@ -335,12 +335,12 @@
   <div id="logs" class="tab-content hidden">
     <div class="card">
       <h2>🛡️ Activity log <span class="badge b-admin">Admin only</span></h2>
-      <p style="color:var(--text-muted); font-size:13px; margin-bottom:1rem;">Real-time history of who added, edited, or deleted records across all devices</p>
+      <p class="section-sub">Real-time history of who added, edited, or deleted records across all devices</p>
       <div class="grid grid-4" style="margin-bottom:1rem;">
         <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" id="logTotal">0</div></div>
         <div class="stat-card"><div class="stat-label">Today</div><div class="stat-value" id="logToday">0</div></div>
-        <div class="stat-card"><div class="stat-label">Creates</div><div class="stat-value" id="logCreates" style="color:#7dd85d;">0</div></div>
-        <div class="stat-card"><div class="stat-label">Deletes</div><div class="stat-value" id="logDeletes" style="color:#d95b5b;">0</div></div>
+        <div class="stat-card"><div class="stat-label">Creates</div><div class="stat-value" id="logCreates" style="color:var(--ok);">0</div></div>
+        <div class="stat-card"><div class="stat-label">Deletes</div><div class="stat-value" id="logDeletes" style="color:var(--danger);">0</div></div>
       </div>
       <div class="search-bar"><span>🔍</span><input type="text" id="logSearch" placeholder="Search..." oninput="renderLogs()"></div>
       <div class="filter-row" id="logFilters"></div>
@@ -375,7 +375,7 @@
     <div>
       <label>📎 Attach file (PDF / Word)</label>
       <input type="file" id="protocolFile" accept=".pdf,.doc,.docx" onchange="handleProtocolFile(event)">
-      <div id="protocolFileInfo" style="font-size:12px; color:#888; margin-top:6px;"></div>
+      <div id="protocolFileInfo" style="font-size:12px; color:var(--text-muted); margin-top:6px;"></div>
     </div>
     <div class="btn-row"><button class="btn btn-primary" onclick="saveProtocol()">💾 Save</button><button class="btn" onclick="closeProtocolModal()">Cancel</button></div>
   </div>

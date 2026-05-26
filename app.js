@@ -332,7 +332,7 @@ function renderRecurTaskList() {
   const cont = document.getElementById('recurTaskList');
   if (!cont) return;
   const rt = normalizeRecurring();
-  if (rt.length === 0) { cont.innerHTML = '<p style="color:#666; font-size:13px;">No recurring tasks yet</p>'; return; }
+  if (rt.length === 0) { cont.innerHTML = '<p style="color:var(--text-3); font-size:13px;">No recurring tasks yet</p>'; return; }
   cont.innerHTML = `<div class="setting-group">${rt.map((t, i) => `
     <div class="setting-row">
       <div style="display:flex; gap:8px; align-items:center; flex:1;">
@@ -452,7 +452,7 @@ function renderCalendarGrid() {
   const legend = document.getElementById('calLegend');
   if (legend) {
     const rt = normalizeRecurring();
-    legend.innerHTML = rt.map(t => `<div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#aaa;"><span style="width:12px; height:12px; border-radius:50%; background:${t.color}; display:inline-block;"></span>${t.name}</div>`).join('');
+    legend.innerHTML = rt.map(t => `<div style="display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);"><span style="width:12px; height:12px; border-radius:50%; background:${t.color}; display:inline-block;"></span>${t.name}</div>`).join('');
   }
 }
 
@@ -465,13 +465,13 @@ function renderCalendarDay() {
   const tasks = (data.calTasks || []).filter(t => t.date === calSelectedDate).sort((a,b) => (a.created||0)-(b.created||0));
   if (tasks.length === 0) { cont.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>No tasks for this day. Add one above.</p></div>'; return; }
   const done = tasks.filter(t => t.done).length;
-  cont.innerHTML = `<p style="font-size:12px; color:#888; margin-bottom:10px;">${done}/${tasks.length} completed</p>` + tasks.map(t => {
+  cont.innerHTML = `<p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">${done}/${tasks.length} completed</p>` + tasks.map(t => {
     const c = t.color || colorForTask(t.task);
     return `
     <li class="task-item" style="border-left:4px solid ${c}; ${t.done ? 'opacity:0.55;' : ''}">
       <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleCalTask('${t._id}')" style="width:20px; height:20px; cursor:pointer; flex:none;">
       <span class="task-desc" style="${t.done ? 'text-decoration:line-through;' : ''}">${t.task}</span>
-      ${t.createdBy ? `<span style="font-size:11px; color:#666;">${t.createdBy}</span>` : ''}
+      ${t.createdBy ? `<span style="font-size:11px; color:var(--text-3);">${t.createdBy}</span>` : ''}
       <button class="action-btn delete" onclick="deleteCalTask('${t._id}')">🗑</button>
     </li>`; }).join('');
 }
@@ -504,7 +504,7 @@ function renderTempSettings() {
   if (!cont) return;
   cont.innerHTML = data.settings.temps.map((t, i) => `
     <div class="setting-row"><div style="display:flex; gap:8px; align-items:center; flex:1;">
-      <input type="number" step="0.1" value="${t.value}" onchange="updateTemp(${i}, 'value', this.value)" style="width:80px;"><span style="color:#888;">°C</span>
+      <input type="number" step="0.1" value="${t.value}" onchange="updateTemp(${i}, 'value', this.value)" style="width:80px;"><span style="color:var(--text-muted);">°C</span>
       <input type="text" value="${t.label}" onchange="updateTemp(${i}, 'label', this.value)">
     </div><button class="action-btn delete" onclick="removeTemp(${i})">🗑</button></div>`).join('');
 }
@@ -550,7 +550,7 @@ window.renderStockFilters = function() {
   const cont = document.getElementById('stockFilters');
   if (!cont) return;
   const types = ['all', ...data.settings.stockTypes, 'flip-due'];
-  cont.innerHTML = types.map(t => `<div class="filter-chip ${t === activeStockFilter ? 'active' : ''}" onclick="filterStocks('${t}', this)" ${t === 'flip-due' ? 'style="color:#e8b14e;"' : ''}>${t === 'all' ? 'All' : t === 'flip-due' ? '⚠ Flip due' : t}</div>`).join('');
+  cont.innerHTML = types.map(t => `<div class="filter-chip ${t === activeStockFilter ? 'active' : ''}" onclick="filterStocks('${t}', this)" ${t === 'flip-due' ? 'style="color:var(--warn);"' : ''}>${t === 'all' ? 'All' : t === 'flip-due' ? '⚠ Flip due' : t}</div>`).join('');
 };
 function renderStockFilters() { window.renderStockFilters(); }
 window.filterStocks = function(filter, el) { activeStockFilter = filter; document.querySelectorAll('#stocks .filter-chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderStocks(); };
@@ -597,16 +597,16 @@ function renderStocks() {
     return s.type === activeStockFilter;
   });
   document.getElementById('stockTotalCount').textContent = data.stocks.length;
-  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:#666;">No stocks</td></tr>'; return; }
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No stocks</td></tr>'; return; }
   tbody.innerHTML = filtered.map(s => {
     const days = s.flipDate ? Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000) : null;
     let flipStatus = '—', status = '<span class="badge b-active">OK</span>';
     if (days !== null) {
-      if (days > critDays) { flipStatus = `<span style="color:#d95b5b;">⚠ ${days}d</span>`; status = '<span class="badge b-danger">FLIP NOW</span>'; }
-      else if (days > warnDays) { flipStatus = `<span style="color:#e8b14e;">${days}d</span>`; status = '<span class="badge b-warn">Soon</span>'; }
-      else flipStatus = `<span style="color:#7dd85d;">${days}d</span>`;
+      if (days > critDays) { flipStatus = `<span style="color:var(--danger);">⚠ ${days}d</span>`; status = '<span class="badge b-danger">FLIP NOW</span>'; }
+      else if (days > warnDays) { flipStatus = `<span style="color:var(--warn);">${days}d</span>`; status = '<span class="badge b-warn">Soon</span>'; }
+      else flipStatus = `<span style="color:var(--ok);">${days}d</span>`;
     }
-    return `<tr><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:#888;">' + s.name + '</span>' : ''}</td>
+    return `<tr><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:var(--text-muted);">' + s.name + '</span>' : ''}</td>
       <td style="font-family:monospace; font-size:12px;">${s.genotype || '—'}</td><td>${s.type || '—'}</td><td>${s.source || '—'}</td>
       <td style="font-family:monospace; font-size:12px;">${s.location || '—'}</td><td>${flipStatus}</td><td>${status}</td>
       <td><button class="action-btn edit-btn" onclick="markFlipped('${s._id}')">↻</button><button class="action-btn delete" onclick="deleteStock('${s._id}')">🗑</button></td></tr>`;
@@ -654,11 +654,11 @@ function renderCrosses() {
     if (activeCrossFilter === 'active' || activeCrossFilter === 'complete') return c.status === activeCrossFilter;
     return c.gen === activeCrossFilter;
   });
-  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:#666;">No crosses</td></tr>'; return; }
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No crosses</td></tr>'; return; }
   tbody.innerHTML = filtered.map(c => {
     const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0;
     return `<tr><td><strong>${c.id}</strong></td><td><span class="badge b-${c.gen.toLowerCase()}">${c.gen}</span></td>
-      <td style="font-family:monospace; font-size:11px;">${c.female || '?'} <span style="color:#888;">×</span> ${c.male || '?'}</td>
+      <td style="font-family:monospace; font-size:11px;">${c.female || '?'} <span style="color:var(--text-muted);">×</span> ${c.male || '?'}</td>
       <td>${c.date ? new Date(c.date).toLocaleDateString() : '—'}</td><td><strong>Day ${day}</strong></td>
       <td>${c.temp || 25}°C</td><td><span class="badge b-${c.status === 'active' ? 'active' : 'done'}">${c.status}</span></td>
       <td><button class="action-btn edit-btn" onclick="toggleCrossStatus('${c._id}')">✓</button><button class="action-btn delete" onclick="deleteCross('${c._id}')">🗑</button></td></tr>`;
@@ -694,7 +694,7 @@ function renderVirgins() {
   const tbody = document.getElementById('virginTableBody');
   if (!tbody) return;
   const sorted = [...data.virgins].sort((a,b) => (b.created||0) - (a.created||0));
-  if (sorted.length === 0) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:#666;">No collections</td></tr>';
+  if (sorted.length === 0) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-3);">No collections</td></tr>';
   else tbody.innerHTML = sorted.map(v => `<tr><td>${new Date(v.date).toLocaleDateString()}</td><td style="font-family:monospace;">${v.time || '—'}</td>
       <td><span class="badge ${v.session === 'AM' ? 'b-f1' : 'b-f2'}">${v.session}</span></td><td>${v.source || '—'}</td>
       <td><span class="badge b-female">${v.females}</span></td><td><span class="badge b-male">${v.males}</span></td>
@@ -742,12 +742,12 @@ function renderPhenotypes() {
   const tbody = document.getElementById('phenoTableBody');
   if (!tbody) return;
   const sorted = [...data.phenotypes].sort((a,b) => (b.created||0) - (a.created||0));
-  if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:#666;">No data</td></tr>'; return; }
+  if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-3);">No data</td></tr>'; return; }
   tbody.innerHTML = sorted.map(p => {
     const summary = Object.entries(p.counts).filter(([_,v]) => v > 0).map(([k,v]) => `${k}: ${v}`).join(' • ');
     return `<tr><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${p.vial}</strong></td>
       <td><span class="badge b-${p.gen.toLowerCase()}">${p.gen}</span></td><td style="font-size:11px;">${summary}</td>
-      <td><strong>${p.total}</strong></td><td style="font-size:11px; color:#888;">${(p.notes || '').substring(0, 30)}</td>
+      <td><strong>${p.total}</strong></td><td style="font-size:11px; color:var(--text-muted);">${(p.notes || '').substring(0, 30)}</td>
       <td><button class="action-btn delete" onclick="deletePheno('${p._id}')">🗑</button></td></tr>`;
   }).join('');
 }
@@ -882,10 +882,10 @@ function renderProtocols() {
     const fileIcon = p.file ? (p.file.name.endsWith('.pdf') ? '📄' : '📝') : '';
     return `<div class="protocol-card"><div class="protocol-header"><div><div class="protocol-title">${p.name}</div><div class="protocol-meta">${p.category} ${p.duration ? '• ' + p.duration : ''}</div></div>
       <div><button class="action-btn edit-btn" onclick="openProtocolModal('${p._id}')">✏️</button><button class="action-btn delete" onclick="deleteProtocol('${p._id}')">🗑</button></div></div>
-      ${p.materials ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:#888; text-transform:uppercase;">Materials</strong><div class="protocol-body">${p.materials}</div></div>` : ''}
-      ${p.steps ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:#888; text-transform:uppercase;">Steps</strong><div class="protocol-body">${p.steps}</div></div>` : ''}
-      ${p.notes ? `<div><strong style="font-size:11px; color:#888; text-transform:uppercase;">Notes</strong><div class="protocol-body">${p.notes}</div></div>` : ''}
-      ${p.file ? `<div class="file-attach" onclick="downloadProtocolFile('${p._id}')">${fileIcon} ${p.file.name} <span style="color:#888; font-size:11px;">(${(p.file.size/1024).toFixed(0)} KB) — click to download</span></div>` : ''}</div>`;
+      ${p.materials ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Materials</strong><div class="protocol-body">${p.materials}</div></div>` : ''}
+      ${p.steps ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Steps</strong><div class="protocol-body">${p.steps}</div></div>` : ''}
+      ${p.notes ? `<div><strong style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Notes</strong><div class="protocol-body">${p.notes}</div></div>` : ''}
+      ${p.file ? `<div class="file-attach" onclick="downloadProtocolFile('${p._id}')">${fileIcon} ${p.file.name} <span style="color:var(--text-muted); font-size:11px;">(${(p.file.size/1024).toFixed(0)} KB) — click to download</span></div>` : ''}</div>`;
   }).join('');
 }
 
@@ -938,7 +938,7 @@ function renderLogs() {
   document.getElementById('logCreates').textContent = data.logs.filter(l => l.action === 'create').length;
   document.getElementById('logDeletes').textContent = data.logs.filter(l => l.action === 'delete').length;
   renderLogFilters();
-  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:#666;">No log entries</td></tr>'; return; }
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem; color:var(--text-3);">No log entries</td></tr>'; return; }
   tbody.innerHTML = filtered.slice(0, 500).map(l => {
     const d = new Date(l.timestamp);
     return `<tr><td style="font-family:monospace; font-size:12px;">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</td>
@@ -971,7 +971,7 @@ function renderUsers() {
   if (!tbody || !data.users) return;
   tbody.innerHTML = data.users.map(u => {
     const actionCount = data.logs.filter(l => l.user === u.name).length;
-    return `<tr><td><strong>${u.name}</strong>${u.email === currentProfile.email ? ' <span style="color:#4a9eff;">(you)</span>' : ''}</td>
+    return `<tr><td><strong>${u.name}</strong>${u.email === currentProfile.email ? ' <span style="color:var(--info); font-size:11px; font-weight:600;">(you)</span>' : ''}</td>
       <td style="font-size:12px;">${u.email}</td>
       <td><select onchange="changeUserRole('${u._id}', this.value)" style="width:auto; padding:4px 8px;">
         <option value="regular" ${u.role==='regular'?'selected':''}>Regular</option>
@@ -991,7 +991,7 @@ function refreshDashboard() {
   const flipsDue = data.stocks.filter(s => s.flipDate && (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > data.settings.flipWarnDays);
   if (fa) fa.textContent = flipsDue.length;
   const flipList = document.getElementById('flipList');
-  if (flipList) flipList.innerHTML = flipsDue.length === 0 ? '<div class="empty-state"><p>✓ All current</p></div>' : flipsDue.slice(0, 5).map(s => { const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000); return `<li class="task-item"><span class="task-time" style="color:#e8b14e;">${days}d</span><span class="task-desc"><strong>${s.id}</strong> — ${s.genotype || s.name || ''}</span><span class="task-priority">Flip!</span></li>`; }).join('');
+  if (flipList) flipList.innerHTML = flipsDue.length === 0 ? '<div class="empty-state"><p>✓ All current</p></div>' : flipsDue.slice(0, 5).map(s => { const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000); return `<li class="task-item"><span class="task-time" style="color:var(--warn);">${days}d</span><span class="task-desc"><strong>${s.id}</strong> — ${s.genotype || s.name || ''}</span><span class="task-priority">Flip!</span></li>`; }).join('');
   const activeCrossList = document.getElementById('activeCrossList');
   if (activeCrossList) { const active = data.crosses.filter(c => c.status === 'active').slice(0, 5); activeCrossList.innerHTML = active.length === 0 ? '<div class="empty-state"><p>No active crosses</p></div>' : active.map(c => { const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0; return `<li class="task-item"><span class="task-time">Day ${day}</span><span class="task-desc"><strong>${c.id}</strong> (${c.gen}) — ${c.female} × ${c.male}</span></li>`; }).join(''); }
 }
