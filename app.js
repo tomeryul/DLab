@@ -435,6 +435,17 @@ function renderCollection(coll) {
   else if (coll === 'calTasks') renderCalendarDay();
 }
 
+// app.js loads as an ES module, so top-level `function foo` is NOT global.
+// Expose every renderer called from inline HTML oninput="renderXxx()" handlers
+// (search bars, filter inputs) so those events actually fire something.
+window.renderStocks      = (...a) => renderStocks(...a);
+window.renderCrosses     = (...a) => renderCrosses(...a);
+window.renderVirgins     = (...a) => renderVirgins(...a);
+window.renderPhenotypes  = (...a) => renderPhenotypes(...a);
+window.renderNotes       = (...a) => renderNotes(...a);
+window.renderProtocols   = (...a) => renderProtocols(...a);
+window.renderLogs        = (...a) => renderLogs(...a);
+
 async function dbAdd(coll, obj) {
   setSyncStatus('syncing');
   obj.createdBy = currentProfile.name;
