@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="paper">
+<html lang="en" data-theme="warm-dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FlyLab Pro — Cloud Drosophila Lab</title>
+<title>FlyLab Pro v5 — Cloud Drosophila Lab</title>
 <!-- ===== PWA ===== -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#c0392b">
+<meta name="theme-color" content="#f2785c">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Spectral:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="stylesheet" href="styles.css">
 </head>
@@ -99,37 +99,20 @@
     <div class="content-scroll">
 
   <div id="dashboard" class="tab-content">
-    <header class="lab-hero">
-      <h1 class="lab-hero-title"><em id="greetingTime">Good day</em>, <span id="welcomeName"></span></h1>
-      <div class="lab-hero-meta">
-        <strong id="dashDate">—</strong><br>
-        <span id="dashWeek">—</span>
-      </div>
-    </header>
-
-    <div class="bento">
-      <div class="stat-card span-3" id="stockCountCard"><div class="stat-label">Active Stocks</div><div class="stat-value" id="stockCount">0</div></div>
-      <div class="stat-card span-3" id="crossCountCard"><div class="stat-label">Active Crosses</div><div class="stat-value" id="crossCount">0</div></div>
-      <div class="stat-card span-3" id="virginCard"><div class="stat-label">Virgins Today</div><div class="stat-value" id="virginToday">0</div></div>
-      <div class="stat-card span-3" id="flipAlertCard"><div class="stat-label">Flip Alerts</div><div class="stat-value" id="flipAlert">0</div></div>
-    </div>
-
-    <div class="bento">
-      <div class="card span-7">
-        <h2>Today's schedule</h2>
-        <ul class="task-list" id="dailySchedule"></ul>
-      </div>
-      <div class="card span-5">
-        <h2>Stocks needing flip</h2>
-        <div id="flipList" class="task-list"></div>
+    <div class="card">
+      <h2>👋 Welcome back, <span id="welcomeName"></span></h2>
+      <p class="section-sub" id="dateDisplay"></p>
+      <div class="grid grid-4">
+        <div class="stat-card"><div class="stat-label">Active Stocks</div><div class="stat-value" id="stockCount">0</div></div>
+        <div class="stat-card"><div class="stat-label">Active Crosses</div><div class="stat-value" id="crossCount">0</div></div>
+        <div class="stat-card"><div class="stat-label">Virgins Today</div><div class="stat-value" id="virginToday">0</div></div>
+        <div class="stat-card"><div class="stat-label">Flip Alerts</div><div class="stat-value" id="flipAlert" style="color:var(--warn);">0</div></div>
       </div>
     </div>
-
-    <div class="bento">
-      <div class="card span-12">
-        <h2>Active crosses</h2>
-        <div id="activeCrossList" class="task-list"></div>
-      </div>
+    <div class="card"><h2>⏰ Today's schedule</h2><ul class="task-list" id="dailySchedule"></ul></div>
+    <div class="grid grid-2">
+      <div class="card"><h2>🔔 Stocks needing flip</h2><div id="flipList" class="task-list"></div></div>
+      <div class="card"><h2>⚗️ Active crosses</h2><div id="activeCrossList" class="task-list"></div></div>
     </div>
   </div>
 
