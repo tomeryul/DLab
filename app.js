@@ -52,6 +52,7 @@ const defaultProtocols = [
 ];
 
 let data = { stocks: [], crosses: [], virgins: [], phenotypes: [], notes: [], protocols: [], calTasks: [], logs: [], settings: JSON.parse(JSON.stringify(defaultSettings)) };
+window.__flyLabData = data;
 let phenoCategories = [...defaultSettings.defaultPhenos];
 let currentUser = null;
 let currentProfile = null;
@@ -92,13 +93,169 @@ function setSyncStatus(state) {
   txt.textContent = state === 'synced' ? 'Synced' : state === 'syncing' ? 'Syncing...' : 'Offline';
 }
 
-function toast(msg) {
+function toast(msg, opts) {
+  // Stack toasts by removing prior ones of same key (or all if no key)
+  if (opts && opts.key) document.querySelectorAll(`.toast[data-key="${opts.key}"]`).forEach(n => n.remove());
   const t = document.createElement('div');
   t.className = 'toast';
-  t.textContent = msg;
+  if (opts && opts.key) t.dataset.key = opts.key;
+  if (opts && opts.tone) t.classList.add('toast-' + opts.tone);
+  const msgEl = document.createElement('span');
+  msgEl.className = 'toast-msg';
+  msgEl.textContent = msg;
+  t.appendChild(msgEl);
+  const ttl = (opts && opts.ttl) || 2500;
+  if (opts && opts.actionLabel && typeof opts.onAction === 'function') {
+    const btn = document.createElement('button');
+    btn.className = 'toast-action';
+    btn.textContent = opts.actionLabel;
+    btn.onclick = () => { try { opts.onAction(); } finally { t.remove(); } };
+    t.appendChild(btn);
+  }
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2500);
+  setTimeout(() => { t.classList.add('toast-leaving'); setTimeout(() => t.remove(), 200); }, ttl);
+  return t;
 }
+
+function escapeHtml(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
+}
+
+// Field-level validation helper. Marks an input red with a message;
+// auto-clears on next user input.
+function flagField(elOrId, msg) {
+  const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+  if (!el) return;
+  el.classList.add('field-error');
+  let msgEl = el.parentElement.querySelector('.field-error-msg[data-inline]');
+  if (!msgEl) {
+    msgEl = document.createElement('div');
+    msgEl.className = 'field-error-msg';
+    msgEl.setAttribute('data-inline', '1');
+    el.parentElement.appendChild(msgEl);
+  }
+  msgEl.textContent = msg || 'Required';
+  const clear = () => {
+    el.classList.remove('field-error');
+    msgEl.textContent = '';
+    el.removeEventListener('input', clear);
+    el.removeEventListener('change', clear);
+  };
+  el.addEventListener('input', clear);
+  el.addEventListener('change', clear);
+  el.focus();
+}
+window.flagField = flagField;
+
+// Generic edit-record modal. `fields` is [{key,label,type?,options?,placeholder?,required?}]
+function openEditModal({ title, fields, values, onSave, saveLabel = 'Save' }) {
+  const bg = document.createElement('div');
+  bg.className = 'modal-bg';
+  const inputs = fields.map(f => {
+    const v = values[f.key] != null ? values[f.key] : '';
+    const req = f.required ? ' required' : '';
+    const ph = f.placeholder ? ` placeholder="${escapeHtml(f.placeholder)}"` : '';
+    let inp;
+    if (f.type === 'textarea') inp = `<textarea data-key="${f.key}"${req}${ph}>${escapeHtml(v)}</textarea>`;
+    else if (f.type === 'select') {
+      const opts = (f.options || []).map(o => {
+        const val = typeof o === 'object' ? o.value : o;
+        const lab = typeof o === 'object' ? o.label : o;
+        return `<option value="${escapeHtml(val)}" ${String(val) === String(v) ? 'selected' : ''}>${escapeHtml(lab || '(none)')}</option>`;
+      }).join('');
+      inp = `<select data-key="${f.key}"${req}>${opts}</select>`;
+    }
+    else inp = `<input type="${f.type || 'text'}" data-key="${f.key}" value="${escapeHtml(v)}"${req}${ph}>`;
+    return `<div style="margin-bottom:12px;"><label>${escapeHtml(f.label)}</label>${inp}<div class="field-error-msg" data-error-for="${f.key}"></div></div>`;
+  }).join('');
+  bg.innerHTML = `<div class="modal edit-modal" role="dialog" aria-modal="true">
+    <h3>${escapeHtml(title)}</h3>
+    ${inputs}
+    <div class="btn-row" style="justify-content:flex-end;">
+      <button class="btn" data-act="cancel">Cancel</button>
+      <button class="btn btn-primary" data-act="save">${escapeHtml(saveLabel)}</button>
+    </div>
+  </div>`;
+  function close() {
+    bg.classList.add('modal-leaving');
+    setTimeout(() => bg.remove(), 180);
+    document.removeEventListener('keydown', onKey);
+  }
+  function onKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); close(); }
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); save(); }
+  }
+  async function save() {
+    const updates = {};
+    let firstBad = null;
+    bg.querySelectorAll('.field-error-msg').forEach(n => { n.textContent = ''; });
+    bg.querySelectorAll('[data-key]').forEach(el => el.classList.remove('field-error'));
+    for (const f of fields) {
+      const el = bg.querySelector(`[data-key="${f.key}"]`);
+      let v = el.value;
+      if (f.required && !String(v).trim()) {
+        el.classList.add('field-error');
+        const msg = bg.querySelector(`[data-error-for="${f.key}"]`);
+        if (msg) msg.textContent = `${f.label} is required`;
+        if (!firstBad) firstBad = el;
+        continue;
+      }
+      if (f.type === 'number') v = v === '' ? null : Number(v);
+      updates[f.key] = v;
+    }
+    if (firstBad) { firstBad.focus(); return; }
+    const btn = bg.querySelector('[data-act="save"]');
+    const orig = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await onSave(updates);
+      close();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = orig;
+      toast('Save failed: ' + (e && e.message || 'unknown'), { tone: 'error' });
+    }
+  }
+  bg.querySelector('[data-act="cancel"]').onclick = close;
+  bg.querySelector('[data-act="save"]').onclick = save;
+  bg.addEventListener('click', e => { if (e.target === bg) close(); });
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(bg);
+  setTimeout(() => bg.querySelector('[data-key]')?.focus(), 50);
+}
+window.openEditModal = openEditModal;
+
+// Styled confirm dialog — returns Promise<boolean>
+function confirmDialog({ title = 'Are you sure?', body = '', confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false } = {}) {
+  return new Promise(resolve => {
+    const bg = document.createElement('div');
+    bg.className = 'modal-bg';
+    bg.innerHTML = `<div class="modal confirm-modal" role="dialog" aria-modal="true">
+      <h3>${title}</h3>
+      ${body ? `<p class="confirm-body">${body}</p>` : ''}
+      <div class="btn-row" style="justify-content:flex-end;">
+        <button class="btn" data-act="cancel">${cancelLabel}</button>
+        <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" data-act="ok">${confirmLabel}</button>
+      </div>
+    </div>`;
+    function close(val) {
+      bg.classList.add('modal-leaving');
+      setTimeout(() => bg.remove(), 180);
+      document.removeEventListener('keydown', onKey);
+      resolve(val);
+    }
+    function onKey(e) {
+      if (e.key === 'Escape') { e.preventDefault(); close(false); }
+      if (e.key === 'Enter') { e.preventDefault(); close(true); }
+    }
+    bg.addEventListener('click', e => { if (e.target === bg) close(false); });
+    bg.querySelector('[data-act="cancel"]').onclick = () => close(false);
+    bg.querySelector('[data-act="ok"]').onclick = () => close(true);
+    document.addEventListener('keydown', onKey);
+    document.body.appendChild(bg);
+    setTimeout(() => bg.querySelector('[data-act="ok"]').focus(), 50);
+  });
+}
+window.confirmDialog = confirmDialog;
 
 window.switchAuthTab = function(mode) {
   authMode = mode;
@@ -147,12 +304,11 @@ function translateError(code) {
 }
 
 window.logout = async function() {
-  if (confirm('Log out?')) {
-    await logActivity('logout', 'system', `${currentProfile.name} logged out`);
-    unsubscribers.forEach(u => u());
-    unsubscribers = [];
-    await signOut(auth);
-  }
+  if (!await confirmDialog({ title: 'Log out?', body: `Signed in as ${currentProfile && currentProfile.name}.`, confirmLabel: 'Log out' })) return;
+  await logActivity('logout', 'system', `${currentProfile.name} logged out`);
+  unsubscribers.forEach(u => u());
+  unsubscribers = [];
+  await signOut(auth);
 };
 
 onAuthStateChanged(auth, async (user) => {
@@ -188,9 +344,40 @@ function enterApp() {
   document.getElementById('usersTab').style.display = isSuperAdmin ? '' : 'none';
   applyPermissions();
   renderThemePicker();
+  paintSkeletons();
   subscribeAll();
   setToday();
   logActivity('login', 'system', `${currentProfile.name} logged in`);
+}
+
+// Paint shimmer placeholder rows into every record table until first Firestore snapshot fills them.
+function paintSkeletons() {
+  const targets = [
+    { id: 'stockTableBody', cols: 8 },
+    { id: 'crossTableBody', cols: 8 },
+    { id: 'virginTableBody', cols: 9 },
+    { id: 'phenoTableBody', cols: 7 },
+    { id: 'logTableBody', cols: 6 },
+    { id: 'usersTableBody', cols: 6 }
+  ];
+  targets.forEach(t => {
+    const el = document.getElementById(t.id);
+    if (!el || el.children.length > 0) return;
+    let rows = '';
+    for (let i = 0; i < 4; i++) {
+      let cells = '';
+      for (let c = 0; c < t.cols; c++) cells += '<td><span>—</span></td>';
+      rows += `<tr class="sk-row">${cells}</tr>`;
+    }
+    el.innerHTML = rows;
+  });
+  // Notes & protocols are card lists, not tables — light skeleton blocks
+  const lists = ['notesList', 'protocolsList'];
+  lists.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.children.length > 0) return;
+    el.innerHTML = '<div class="sk-block" style="height:64px;"></div><div class="sk-block" style="height:64px;"></div><div class="sk-block" style="height:64px;"></div>';
+  });
 }
 
 function roleLabel(r) {
@@ -256,6 +443,40 @@ async function dbAdd(coll, obj) {
 async function dbDelete(coll, id) {
   setSyncStatus('syncing');
   await deleteDoc(doc(db, coll, id));
+}
+
+// Confirm + delete + undo toast. Restores record at same Firestore id.
+async function deleteWithUndo({ coll, id, label, module, body }) {
+  if (!canDelete()) { toast('No permission to delete'); return false; }
+  const rec = (data[coll] || []).find(x => x._id === id);
+  if (!rec) return false;
+  const ok = await confirmDialog({
+    title: `Delete ${label}?`,
+    body: body || 'You can undo for a few seconds.',
+    confirmLabel: 'Delete',
+    danger: true
+  });
+  if (!ok) return false;
+  const { _id, ...payload } = rec;
+  setSyncStatus('syncing');
+  await deleteDoc(doc(db, coll, id));
+  logActivity('delete', module, `Deleted ${label}`);
+  toast('Deleted', {
+    key: 'undo-' + id,
+    ttl: 6000,
+    actionLabel: 'Undo',
+    onAction: async () => {
+      try {
+        setSyncStatus('syncing');
+        await setDoc(doc(db, coll, id), payload);
+        logActivity('edit', module, `Restored ${label}`);
+        toast('Restored', { tone: 'success' });
+      } catch (e) {
+        toast('Restore failed', { tone: 'error' });
+      }
+    }
+  });
+  return true;
 }
 async function dbUpdate(coll, id, obj) {
   setSyncStatus('syncing');
@@ -376,9 +597,8 @@ window.toggleCalTask = async function(id) {
   await dbUpdate('calTasks', id, { done: !t.done });
 };
 window.deleteCalTask = async function(id) {
-  if (!canDelete()) { toast('No permission to delete'); return; }
-  await dbDelete('calTasks', id);
-  logActivity('delete', 'Calendar', `Removed a task`);
+  const t = data.calTasks.find(x => x._id === id); if (!t) return;
+  await deleteWithUndo({ coll: 'calTasks', id, label: `task "${t.task}"`, module: 'Calendar' });
 };
 
 let calViewYear = new Date().getFullYear();
@@ -511,7 +731,11 @@ function renderTempSettings() {
 
 window.updateStockType = function(i, value) { data.settings.stockTypes[i] = value; populateSelects(); };
 window.addStockType = function() { const n = prompt('New stock type:'); if (n) { data.settings.stockTypes.push(n); renderStockTypes(); populateSelects(); renderStockFilters(); } };
-window.removeStockType = function(i) { if (confirm('Remove?')) { data.settings.stockTypes.splice(i, 1); renderStockTypes(); populateSelects(); renderStockFilters(); } };
+window.removeStockType = async function(i) {
+  const name = data.settings.stockTypes[i];
+  if (!await confirmDialog({ title: 'Remove stock type?', body: `"${name}" will be removed from the list. Existing stocks keep their value.`, confirmLabel: 'Remove', danger: true })) return;
+  data.settings.stockTypes.splice(i, 1); renderStockTypes(); populateSelects(); renderStockFilters();
+};
 function renderStockTypes() {
   const cont = document.getElementById('stockTypesList');
   if (!cont) return;
@@ -567,16 +791,39 @@ window.addStock = async function() {
     chrom: document.getElementById('stockChrom').value,
     notes: document.getElementById('stockNotes').value.trim()
   };
-  if (!stock.id) { toast('Stock ID required'); return; }
+  if (!stock.id) { flagField('stockId', 'Stock ID is required'); return; }
   await dbAdd('stocks', stock);
   logActivity('create', 'Stocks', `Added stock "${stock.id}" (${stock.genotype})`);
   ['stockId','stockGenotype','stockName','stockSource','stockLocation','stockNotes'].forEach(id => document.getElementById(id).value = '');
   toast('Stock added');
 };
 window.deleteStock = async function(id) {
-  if (!canDelete()) { toast('No permission to delete'); return; }
-  const s = data.stocks.find(x => x._id === id);
-  if (confirm('Delete this stock?')) { await dbDelete('stocks', id); logActivity('delete', 'Stocks', `Deleted stock "${s.id}"`); }
+  const s = data.stocks.find(x => x._id === id); if (!s) return;
+  await deleteWithUndo({ coll: 'stocks', id, label: `stock "${s.id}"`, module: 'Stocks' });
+};
+window.editStock = function(id) {
+  if (!canEdit()) { toast('No permission to edit'); return; }
+  const s = data.stocks.find(x => x._id === id); if (!s) return;
+  openEditModal({
+    title: `Edit stock ${s.id}`,
+    values: s,
+    fields: [
+      { key: 'id', label: 'Stock ID', required: true },
+      { key: 'genotype', label: 'Genotype', placeholder: 'e.g., w[1118]; +; +' },
+      { key: 'name', label: 'Common name' },
+      { key: 'type', label: 'Type', type: 'select', options: ['', ...(data.settings.stockTypes || [])] },
+      { key: 'source', label: 'Source' },
+      { key: 'location', label: 'Location' },
+      { key: 'flipDate', label: 'Last flip date', type: 'date' },
+      { key: 'chrom', label: 'Chromosome', type: 'select', options: ['', 'X', '2', '3', '4'] },
+      { key: 'notes', label: 'Notes', type: 'textarea' }
+    ],
+    onSave: async (updates) => {
+      await dbUpdate('stocks', id, updates);
+      logActivity('edit', 'Stocks', `Edited stock "${updates.id || s.id}"`);
+      toast('Stock updated', { tone: 'success' });
+    }
+  });
 };
 window.markFlipped = async function(id) {
   if (!canEdit()) { toast('No permission to edit'); return; }
@@ -606,10 +853,10 @@ function renderStocks() {
       else if (days > warnDays) { flipStatus = `<span style="color:var(--warn);">${days}d</span>`; status = '<span class="badge b-warn">Soon</span>'; }
       else flipStatus = `<span style="color:var(--ok);">${days}d</span>`;
     }
-    return `<tr><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:var(--text-muted);">' + s.name + '</span>' : ''}</td>
+    return `<tr data-record-id="${s._id}"><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:var(--text-muted);">' + s.name + '</span>' : ''}</td>
       <td style="font-family:monospace; font-size:12px;">${s.genotype || '—'}</td><td>${s.type || '—'}</td><td>${s.source || '—'}</td>
       <td style="font-family:monospace; font-size:12px;">${s.location || '—'}</td><td>${flipStatus}</td><td>${status}</td>
-      <td><button class="action-btn edit-btn" onclick="markFlipped('${s._id}')">↻</button><button class="action-btn delete" onclick="deleteStock('${s._id}')">🗑</button></td></tr>`;
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Mark flipped today" onclick="markFlipped('${s._id}')">↻</button><button class="action-btn edit-btn" title="Edit" onclick="editStock('${s._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deleteStock('${s._id}')">🗑</button></td></tr>`;
   }).join('');
 }
 
@@ -627,7 +874,7 @@ window.addCross = async function() {
     hypothesis: document.getElementById('crossHypothesis').value.trim(),
     status: 'active'
   };
-  if (!cross.id) { toast('Cross ID required'); return; }
+  if (!cross.id) { flagField('crossId', 'Cross ID is required'); return; }
   await dbAdd('crosses', cross);
   logActivity('create', 'Crosses', `Added cross "${cross.id}" (${cross.gen}): ${cross.female} × ${cross.male}`);
   ['crossId','crossFemale','crossMale','crossHypothesis'].forEach(id => document.getElementById(id).value = '');
@@ -642,9 +889,34 @@ window.toggleCrossStatus = async function(id) {
   logActivity('edit', 'Crosses', `Cross "${c.id}" → ${ns}`);
 };
 window.deleteCross = async function(id) {
-  if (!canDelete()) { toast('No permission to delete'); return; }
-  const c = data.crosses.find(x => x._id === id);
-  if (confirm('Delete this cross?')) { await dbDelete('crosses', id); logActivity('delete', 'Crosses', `Deleted cross "${c.id}"`); }
+  const c = data.crosses.find(x => x._id === id); if (!c) return;
+  await deleteWithUndo({ coll: 'crosses', id, label: `cross "${c.id}"`, module: 'Crosses' });
+};
+window.editCross = function(id) {
+  if (!canEdit()) { toast('No permission to edit'); return; }
+  const c = data.crosses.find(x => x._id === id); if (!c) return;
+  openEditModal({
+    title: `Edit cross ${c.id}`,
+    values: c,
+    fields: [
+      { key: 'id', label: 'Cross ID', required: true },
+      { key: 'gen', label: 'Generation', type: 'select', options: ['P', 'F1', 'F2', 'F3'] },
+      { key: 'date', label: 'Date started', type: 'date' },
+      { key: 'female', label: '♀ Female genotype' },
+      { key: 'male', label: '♂ Male genotype' },
+      { key: 'container', label: 'Container', type: 'select', options: ['vial', 'bottle'] },
+      { key: 'nFemales', label: '# females', type: 'number' },
+      { key: 'nMales', label: '# males', type: 'number' },
+      { key: 'temp', label: 'Temperature (°C)', type: 'number' },
+      { key: 'hypothesis', label: 'Hypothesis', type: 'textarea' },
+      { key: 'status', label: 'Status', type: 'select', options: ['active', 'complete'] }
+    ],
+    onSave: async (updates) => {
+      await dbUpdate('crosses', id, updates);
+      logActivity('edit', 'Crosses', `Edited cross "${updates.id || c.id}"`);
+      toast('Cross updated', { tone: 'success' });
+    }
+  });
 };
 function renderCrosses() {
   const tbody = document.getElementById('crossTableBody');
@@ -657,11 +929,11 @@ function renderCrosses() {
   if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No crosses</td></tr>'; return; }
   tbody.innerHTML = filtered.map(c => {
     const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0;
-    return `<tr><td><strong>${c.id}</strong></td><td><span class="badge b-${c.gen.toLowerCase()}">${c.gen}</span></td>
+    return `<tr data-record-id="${c._id}"><td><strong>${c.id}</strong></td><td><span class="badge b-${c.gen.toLowerCase()}">${c.gen}</span></td>
       <td style="font-family:monospace; font-size:11px;">${c.female || '?'} <span style="color:var(--text-muted);">×</span> ${c.male || '?'}</td>
       <td>${c.date ? new Date(c.date).toLocaleDateString() : '—'}</td><td><strong>Day ${day}</strong></td>
       <td>${c.temp || 25}°C</td><td><span class="badge b-${c.status === 'active' ? 'active' : 'done'}">${c.status}</span></td>
-      <td><button class="action-btn edit-btn" onclick="toggleCrossStatus('${c._id}')">✓</button><button class="action-btn delete" onclick="deleteCross('${c._id}')">🗑</button></td></tr>`;
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Toggle status" onclick="toggleCrossStatus('${c._id}')">✓</button><button class="action-btn edit-btn" title="Edit" onclick="editCross('${c._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deleteCross('${c._id}')">🗑</button></td></tr>`;
   }).join('');
 }
 
@@ -677,7 +949,7 @@ window.addVirgin = async function() {
     temp: document.getElementById('virginTemp').value,
     notes: document.getElementById('virginNotes').value.trim()
   };
-  if (!v.date) { toast('Date required'); return; }
+  if (!v.date) { flagField('virginDate', 'Date is required'); return; }
   await dbAdd('virgins', v);
   logActivity('create', 'Virgins', `Logged ${v.females}♀ ${v.males}♂ from "${v.source}" (${v.session})`);
   document.getElementById('virginFemales').value = 0;
@@ -686,20 +958,44 @@ window.addVirgin = async function() {
   toast('Collection logged');
 };
 window.deleteVirgin = async function(id) {
-  if (!canDelete()) { toast('No permission to delete'); return; }
-  const v = data.virgins.find(x => x._id === id);
-  if (confirm('Delete?')) { await dbDelete('virgins', id); logActivity('delete', 'Virgins', `Deleted collection from ${new Date(v.date).toLocaleDateString()}`); }
+  const v = data.virgins.find(x => x._id === id); if (!v) return;
+  await deleteWithUndo({ coll: 'virgins', id, label: `collection from ${new Date(v.date).toLocaleDateString()}`, module: 'Virgins' });
+};
+window.editVirgin = function(id) {
+  if (!canEdit()) { toast('No permission to edit'); return; }
+  const v = data.virgins.find(x => x._id === id); if (!v) return;
+  const tempOpts = ['', ...(data.settings.temps || []).map(t => ({ value: t.value, label: t.label }))];
+  openEditModal({
+    title: 'Edit virgin collection',
+    values: v,
+    fields: [
+      { key: 'date', label: 'Date', type: 'date', required: true },
+      { key: 'time', label: 'Time', type: 'time' },
+      { key: 'session', label: 'Session', type: 'select', options: ['AM', 'PM'] },
+      { key: 'source', label: 'Source' },
+      { key: 'females', label: '♀ Virgins', type: 'number' },
+      { key: 'males', label: '♂ Males', type: 'number' },
+      { key: 'container', label: 'Container' },
+      { key: 'temp', label: 'Storage temp', type: 'select', options: tempOpts },
+      { key: 'notes', label: 'Notes', type: 'textarea' }
+    ],
+    onSave: async (updates) => {
+      await dbUpdate('virgins', id, updates);
+      logActivity('edit', 'Virgins', `Edited collection from ${new Date(updates.date || v.date).toLocaleDateString()}`);
+      toast('Collection updated', { tone: 'success' });
+    }
+  });
 };
 function renderVirgins() {
   const tbody = document.getElementById('virginTableBody');
   if (!tbody) return;
   const sorted = [...data.virgins].sort((a,b) => (b.created||0) - (a.created||0));
   if (sorted.length === 0) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-3);">No collections</td></tr>';
-  else tbody.innerHTML = sorted.map(v => `<tr><td>${new Date(v.date).toLocaleDateString()}</td><td style="font-family:monospace;">${v.time || '—'}</td>
+  else tbody.innerHTML = sorted.map(v => `<tr data-record-id="${v._id}"><td>${new Date(v.date).toLocaleDateString()}</td><td style="font-family:monospace;">${v.time || '—'}</td>
       <td><span class="badge ${v.session === 'AM' ? 'b-f1' : 'b-f2'}">${v.session}</span></td><td>${v.source || '—'}</td>
       <td><span class="badge b-female">${v.females}</span></td><td><span class="badge b-male">${v.males}</span></td>
       <td>${v.container || '—'}</td><td>${v.temp}°C</td>
-      <td><button class="action-btn delete" onclick="deleteVirgin('${v._id}')">🗑</button></td></tr>`).join('');
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editVirgin('${v._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deleteVirgin('${v._id}')">🗑</button></td></tr>`).join('');
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
   const td = document.getElementById('virginsTodayDetail'), tw = document.getElementById('virginsWeek'), ta = document.getElementById('virginsAll');
@@ -726,7 +1022,8 @@ window.savePhenotype = async function() {
   let total = 0;
   phenoCategories.forEach((cat, i) => { const v = parseInt(document.getElementById(`counter-${i}`).value) || 0; counts[cat] = v; total += v; });
   const p = { vial: document.getElementById('phenoVial').value.trim(), gen: document.getElementById('phenoGen').value, date: document.getElementById('phenoDate').value, counts, total, notes: document.getElementById('phenoNotes').value.trim() };
-  if (!p.vial || total === 0) { toast('Vial ID and counts required'); return; }
+  if (!p.vial) { flagField('phenoVial', 'Vial/Cross ID is required'); return; }
+  if (total === 0) { toast('Enter at least one count above'); return; }
   await dbAdd('phenotypes', p);
   logActivity('create', 'Phenotyping', `Scored "${p.vial}" (${p.gen}), n=${total}`);
   resetCounters();
@@ -734,9 +1031,27 @@ window.savePhenotype = async function() {
   toast('Saved');
 };
 window.deletePheno = async function(id) {
-  if (!canDelete()) { toast('No permission to delete'); return; }
-  const p = data.phenotypes.find(x => x._id === id);
-  if (confirm('Delete?')) { await dbDelete('phenotypes', id); logActivity('delete', 'Phenotyping', `Deleted scoring of "${p.vial}"`); }
+  const p = data.phenotypes.find(x => x._id === id); if (!p) return;
+  await deleteWithUndo({ coll: 'phenotypes', id, label: `scoring of "${p.vial}"`, module: 'Phenotyping' });
+};
+window.editPheno = function(id) {
+  if (!canEdit()) { toast('No permission to edit'); return; }
+  const p = data.phenotypes.find(x => x._id === id); if (!p) return;
+  openEditModal({
+    title: `Edit scoring of "${p.vial}"`,
+    values: p,
+    fields: [
+      { key: 'vial', label: 'Vial/Cross ID', required: true },
+      { key: 'gen', label: 'Generation', type: 'select', options: ['P', 'F1', 'F2', 'F3'] },
+      { key: 'date', label: 'Scoring date', type: 'date' },
+      { key: 'notes', label: 'Notes', type: 'textarea' }
+    ],
+    onSave: async (updates) => {
+      await dbUpdate('phenotypes', id, updates);
+      logActivity('edit', 'Phenotyping', `Edited scoring of "${updates.vial || p.vial}"`);
+      toast('Scoring updated', { tone: 'success' });
+    }
+  });
 };
 function renderPhenotypes() {
   const tbody = document.getElementById('phenoTableBody');
@@ -745,10 +1060,10 @@ function renderPhenotypes() {
   if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-3);">No data</td></tr>'; return; }
   tbody.innerHTML = sorted.map(p => {
     const summary = Object.entries(p.counts).filter(([_,v]) => v > 0).map(([k,v]) => `${k}: ${v}`).join(' • ');
-    return `<tr><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${p.vial}</strong></td>
+    return `<tr data-record-id="${p._id}"><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${p.vial}</strong></td>
       <td><span class="badge b-${p.gen.toLowerCase()}">${p.gen}</span></td><td style="font-size:11px;">${summary}</td>
       <td><strong>${p.total}</strong></td><td style="font-size:11px; color:var(--text-muted);">${(p.notes || '').substring(0, 30)}</td>
-      <td><button class="action-btn delete" onclick="deletePheno('${p._id}')">🗑</button></td></tr>`;
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editPheno('${p._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deletePheno('${p._id}')">🗑</button></td></tr>`;
   }).join('');
 }
 window.quickChiSquare = function() {
@@ -769,16 +1084,38 @@ window.quickChiSquare = function() {
 
 window.addNote = async function() {
   const n = { date: document.getElementById('noteDate').value, title: document.getElementById('noteTitle').value.trim(), hypothesis: document.getElementById('noteHypothesis').value.trim(), methods: document.getElementById('noteMethods').value.trim(), results: document.getElementById('noteResults').value.trim(), conclusion: document.getElementById('noteConclusion').value.trim(), tags: document.getElementById('noteTags').value.trim() };
-  if (!n.date || !n.title) { toast('Date and title required'); return; }
+  if (!n.title) { flagField('noteTitle', 'Title is required'); return; }
+  if (!n.date) { flagField('noteDate', 'Date is required'); return; }
   await dbAdd('notes', n);
   logActivity('create', 'Notebook', `Added entry "${n.title}"`);
   ['noteTitle','noteHypothesis','noteMethods','noteResults','noteConclusion','noteTags'].forEach(id => document.getElementById(id).value = '');
   toast('Saved');
 };
 window.deleteNote = async function(id) {
-  if (!canDelete()) { toast('No permission to delete'); return; }
-  const n = data.notes.find(x => x._id === id);
-  if (confirm('Delete entry?')) { await dbDelete('notes', id); logActivity('delete', 'Notebook', `Deleted entry "${n.title}"`); }
+  const n = data.notes.find(x => x._id === id); if (!n) return;
+  await deleteWithUndo({ coll: 'notes', id, label: `entry "${n.title}"`, module: 'Notebook' });
+};
+window.editNote = function(id) {
+  if (!canEdit()) { toast('No permission to edit'); return; }
+  const n = data.notes.find(x => x._id === id); if (!n) return;
+  openEditModal({
+    title: `Edit "${n.title}"`,
+    values: n,
+    fields: [
+      { key: 'date', label: 'Date', type: 'date' },
+      { key: 'title', label: 'Title', required: true },
+      { key: 'hypothesis', label: '📝 Hypothesis', type: 'textarea' },
+      { key: 'methods', label: '🧪 Methods', type: 'textarea' },
+      { key: 'results', label: '👀 Results', type: 'textarea' },
+      { key: 'conclusion', label: '💭 Conclusions', type: 'textarea' },
+      { key: 'tags', label: '🏷️ Tags' }
+    ],
+    onSave: async (updates) => {
+      await dbUpdate('notes', id, updates);
+      logActivity('edit', 'Notebook', `Edited entry "${updates.title || n.title}"`);
+      toast('Entry updated', { tone: 'success' });
+    }
+  });
 };
 function renderNotes() {
   const list = document.getElementById('notesList');
@@ -787,13 +1124,13 @@ function renderNotes() {
   const sorted = [...data.notes].sort((a,b) => (b.created||0) - (a.created||0));
   let filtered = sorted.filter(n => !search || `${n.title} ${n.hypothesis} ${n.methods} ${n.results} ${n.conclusion} ${n.tags}`.toLowerCase().includes(search));
   if (filtered.length === 0) { list.innerHTML = '<div class="empty-state"><div class="icon">📓</div><p>No entries</p></div>'; return; }
-  list.innerHTML = filtered.map(n => `<div class="note-entry"><div class="note-header"><div class="note-title">${n.title}</div><div class="note-date">${new Date(n.date).toLocaleDateString()}${n.createdBy ? ' • ' + n.createdBy : ''}</div></div>
+  list.innerHTML = filtered.map(n => `<div class="note-entry" data-record-id="${n._id}"><div class="note-header"><div class="note-title">${n.title}</div><div class="note-date">${new Date(n.date).toLocaleDateString()}${n.createdBy ? ' • ' + n.createdBy : ''}</div></div>
       ${n.hypothesis ? `<div class="note-section"><strong>Hypothesis</strong><div>${n.hypothesis}</div></div>` : ''}
       ${n.methods ? `<div class="note-section"><strong>Methods</strong><div>${n.methods}</div></div>` : ''}
       ${n.results ? `<div class="note-section"><strong>Results</strong><div>${n.results}</div></div>` : ''}
       ${n.conclusion ? `<div class="note-section"><strong>Conclusions</strong><div>${n.conclusion}</div></div>` : ''}
       ${n.tags ? `<div style="margin-top:8px;">${n.tags.split(',').map(t => `<span class="badge b-wt" style="margin-right:4px;">#${t.trim()}</span>`).join('')}</div>` : ''}
-      <div style="text-align:right; margin-top:8px;"><button class="action-btn delete" onclick="deleteNote('${n._id}')">🗑 Delete</button></div></div>`).join('');
+      <div style="text-align:right; margin-top:8px;"><button class="action-btn edit-btn" onclick="editNote('${n._id}')">✏️ Edit</button> <button class="action-btn delete" onclick="deleteNote('${n._id}')">🗑 Delete</button></div></div>`).join('');
 }
 
 window.handleProtocolFile = function(e) {
@@ -828,7 +1165,7 @@ window.openProtocolModal = function(id) {
 window.closeProtocolModal = function() { document.getElementById('protocolModal').classList.add('hidden'); editingProtocolIdx = null; pendingProtocolFile = null; };
 window.saveProtocol = async function() {
   const p = { name: document.getElementById('protocolName').value.trim(), category: document.getElementById('protocolCategory').value.trim() || 'general', duration: document.getElementById('protocolDuration').value.trim(), materials: document.getElementById('protocolMaterials').value.trim(), steps: document.getElementById('protocolSteps').value.trim(), notes: document.getElementById('protocolNotes').value.trim() };
-  if (!p.name) { toast('Name required'); return; }
+  if (!p.name) { flagField('protocolName', 'Protocol name is required'); return; }
   if (editingProtocolIdx) {
     const existing = data.protocols.find(x => x._id === editingProtocolIdx);
     if (pendingProtocolFile) p.file = pendingProtocolFile;
@@ -844,9 +1181,8 @@ window.saveProtocol = async function() {
   toast('Saved to cloud');
 };
 window.deleteProtocol = async function(id) {
-  if (!canDelete()) { toast('No permission to delete'); return; }
-  const p = data.protocols.find(x => x._id === id);
-  if (confirm('Delete this protocol?')) { await dbDelete('protocols', id); logActivity('delete', 'Protocols', `Deleted protocol "${p.name}"`); }
+  const p = data.protocols.find(x => x._id === id); if (!p) return;
+  await deleteWithUndo({ coll: 'protocols', id, label: `protocol "${p.name}"`, module: 'Protocols' });
 };
 window.downloadProtocolFile = function(id) {
   const p = data.protocols.find(x => x._id === id);
@@ -855,7 +1191,10 @@ window.downloadProtocolFile = function(id) {
   a.href = p.file.data; a.download = p.file.name; a.click();
 };
 window.loadDefaultProtocols = async function() {
-  if (data.protocols.length > 0 && !confirm('Add default protocols?')) return;
+  if (data.protocols.length > 0) {
+    const ok = await confirmDialog({ title: 'Add default protocols?', body: `You already have ${data.protocols.length} protocols. This appends ${defaultProtocols.length} starter templates.`, confirmLabel: 'Add' });
+    if (!ok) return;
+  }
   for (const p of defaultProtocols) { await dbAdd('protocols', { ...p }); }
   logActivity('create', 'Protocols', `Loaded ${defaultProtocols.length} default protocols`);
   toast(`Added ${defaultProtocols.length} protocols`);
@@ -880,7 +1219,7 @@ function renderProtocols() {
   if (filtered.length === 0) { list.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No protocols. Click "Load defaults" or add your own.</p></div>'; return; }
   list.innerHTML = filtered.map(p => {
     const fileIcon = p.file ? (p.file.name.endsWith('.pdf') ? '📄' : '📝') : '';
-    return `<div class="protocol-card"><div class="protocol-header"><div><div class="protocol-title">${p.name}</div><div class="protocol-meta">${p.category} ${p.duration ? '• ' + p.duration : ''}</div></div>
+    return `<div class="protocol-card" data-record-id="${p._id}"><div class="protocol-header"><div><div class="protocol-title">${p.name}</div><div class="protocol-meta">${p.category} ${p.duration ? '• ' + p.duration : ''}</div></div>
       <div><button class="action-btn edit-btn" onclick="openProtocolModal('${p._id}')">✏️</button><button class="action-btn delete" onclick="deleteProtocol('${p._id}')">🗑</button></div></div>
       ${p.materials ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Materials</strong><div class="protocol-body">${p.materials}</div></div>` : ''}
       ${p.steps ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Steps</strong><div class="protocol-body">${p.steps}</div></div>` : ''}
@@ -910,15 +1249,18 @@ window.purgeOldLogsManual = async function() {
   const cutoff = Date.now() - 30 * 86400000;
   const oldLogs = data.logs.filter(l => l.timestamp < cutoff);
   if (oldLogs.length === 0) { toast('No logs older than 30 days'); return; }
-  if (!confirm(`Delete ${oldLogs.length} log${oldLogs.length === 1 ? '' : 's'} older than 30 days? This cannot be undone.`)) return;
+  const ok = await confirmDialog({ title: 'Clear old logs?', body: `${oldLogs.length} log entr${oldLogs.length === 1 ? 'y' : 'ies'} older than 30 days will be permanently deleted.`, confirmLabel: `Delete ${oldLogs.length}`, danger: true });
+  if (!ok) return;
   const n = await deleteLogDocs(oldLogs);
   toast(`Deleted ${n} old log${n === 1 ? '' : 's'}`);
 };
 window.clearAllLogs = async function() {
   if (!currentProfile || currentProfile.role !== 'super_admin') { toast('Only Super Admin can clear logs'); return; }
   if (data.logs.length === 0) { toast('No logs to delete'); return; }
-  if (!confirm(`Delete ALL ${data.logs.length} logs? This permanently erases the entire activity history and cannot be undone.`)) return;
-  if (!confirm('Are you absolutely sure? This wipes the whole log.')) return;
+  const ok1 = await confirmDialog({ title: 'Delete the entire activity log?', body: `${data.logs.length} entries will be permanently erased. This wipes the audit history for every user.`, confirmLabel: 'Continue', danger: true });
+  if (!ok1) return;
+  const ok2 = await confirmDialog({ title: 'Last chance', body: 'There is no undo for this. Type-of-thought required: are you really sure?', confirmLabel: 'Yes, wipe all logs', danger: true });
+  if (!ok2) return;
   const n = await deleteLogDocs([...data.logs]);
   toast(`Deleted all ${n} logs`);
 };
