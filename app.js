@@ -63,10 +63,12 @@ let authMode = 'login';
 let unsubscribers = [];
 
 const THEMES = [
-  { id: 'warm-dark', name: 'Rose Quartz', swatches: ['#f7f4f5', '#c98a9b', '#2c2429'] },
-  { id: 'warm-light', name: 'Sky Mist', swatches: ['#f2f5f7', '#6fa3c0', '#232a30'] },
-  { id: 'cool-dark', name: 'Sage Paper', swatches: ['#f3f6f2', '#7faa84', '#262d26'] },
-  { id: 'midnight', name: 'Lavender', swatches: ['#f5f4f8', '#9a8fc4', '#28252e'] }
+  { id: 'paper',      name: 'Paper',       swatches: ['#f4efe6', '#c0392b', '#14110d'] },
+  { id: 'ink',        name: 'Lab Night',   swatches: ['#141210', '#e85d4a', '#f5ecd6'] },
+  { id: 'warm-dark',  name: 'Rose Quartz', swatches: ['#f7f4f5', '#c98a9b', '#2c2429'] },
+  { id: 'warm-light', name: 'Sky Mist',    swatches: ['#f2f5f7', '#6fa3c0', '#232a30'] },
+  { id: 'cool-dark',  name: 'Sage Paper',  swatches: ['#f3f6f2', '#7faa84', '#262d26'] },
+  { id: 'midnight',   name: 'Lavender',    swatches: ['#f5f4f8', '#9a8fc4', '#28252e'] }
 ];
 function applyTheme(id) {
   document.documentElement.setAttribute('data-theme', id);
@@ -1447,15 +1449,57 @@ function renderUsers() {
 }
 
 function refreshDashboard() {
+  // Time-aware editorial hero greeting
+  const greetEl = document.getElementById('greetingTime');
+  if (greetEl) {
+    const h = new Date().getHours();
+    greetEl.textContent = h < 5 ? 'Late night' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
+  }
+  const now = new Date();
+  const dateEl = document.getElementById('dashDate');
+  if (dateEl) {
+    const day = now.toLocaleDateString('en-GB', { weekday: 'long' });
+    const datestr = now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
+    dateEl.innerHTML = `${day} <span style="color:var(--text-faint); margin:0 4px;">·</span> ${datestr}`;
+  }
+  const weekEl = document.getElementById('dashWeek');
+  if (weekEl) {
+    // ISO week number — feels appropriately scientific
+    const tmp = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+    const week = Math.ceil((((tmp - yearStart) / 86400000) + 1) / 7);
+    weekEl.textContent = `Week ${week} / ${tmp.getUTCFullYear()}`;
+  }
+
   const sc = document.getElementById('stockCount'), cc = document.getElementById('crossCount'), vt = document.getElementById('virginToday'), fa = document.getElementById('flipAlert');
-  if (sc) sc.textContent = data.stocks.length;
-  if (cc) cc.textContent = data.crosses.filter(c => c.status === 'active').length;
+  const stockN = data.stocks.length;
+  const crossN = data.crosses.filter(c => c.status === 'active').length;
   const today = new Date().toISOString().split('T')[0];
-  if (vt) vt.textContent = data.virgins.filter(v => v.date === today).reduce((s,v) => s + v.females + v.males, 0);
+  const virginN = data.virgins.filter(v => v.date === today).reduce((s,v) => s + (+v.females || 0) + (+v.males || 0), 0);
   const flipsDue = data.stocks.filter(s => s.flipDate && (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > data.settings.flipWarnDays);
-  if (fa) fa.textContent = flipsDue.length;
+  const flipN = flipsDue.length;
+
+  if (sc) sc.textContent = stockN;
+  if (cc) cc.textContent = crossN;
+  if (vt) vt.textContent = virginN;
+  if (fa) fa.textContent = flipN;
+
+  // Mute the stat tile when it shows zero — the eye lands on the numbers that matter
+  ['stockCountCard','crossCountCard','virginCard','flipAlertCard'].forEach((id, i) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const val = [stockN, crossN, virginN, flipN][i];
+    el.classList.toggle('is-zero', !val);
+  });
+  // Promote Flip Alerts to the "primary" visual treatment when it actually needs attention
+  const flipCard = document.getElementById('flipAlertCard');
+  if (flipCard) flipCard.classList.toggle('stat-card-primary', flipN > 0);
+
   const flipList = document.getElementById('flipList');
-  if (flipList) flipList.innerHTML = flipsDue.length === 0 ? '<div class="empty-state"><p>✓ All current</p></div>' : flipsDue.slice(0, 5).map(s => { const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000); return `<li class="task-item"><span class="task-time" style="color:var(--warn);">${days}d</span><span class="task-desc"><strong>${s.id}</strong> — ${s.genotype || s.name || ''}</span><span class="task-priority">Flip!</span></li>`; }).join('');
+  if (flipList) flipList.innerHTML = flipsDue.length === 0
+    ? '<div class="empty-state"><p>All current</p></div>'
+    : flipsDue.slice(0, 5).map(s => { const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000); return `<li class="task-item"><span class="task-time" style="color:var(--warn);">${days}d</span><span class="task-desc"><strong>${s.id}</strong> — ${s.genotype || s.name || ''}</span><span class="task-priority">Flip</span></li>`; }).join('');
   const activeCrossList = document.getElementById('activeCrossList');
   if (activeCrossList) { const active = data.crosses.filter(c => c.status === 'active').slice(0, 5); activeCrossList.innerHTML = active.length === 0 ? '<div class="empty-state"><p>No active crosses</p></div>' : active.map(c => { const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0; return `<li class="task-item"><span class="task-time">Day ${day}</span><span class="task-desc"><strong>${c.id}</strong> (${c.gen}) — ${c.female} × ${c.male}</span></li>`; }).join(''); }
 }
