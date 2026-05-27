@@ -168,8 +168,15 @@
     </div>
     <div class="card">
       <h2>📚 Stock library <span style="font-size:12px; color:var(--text-muted);">(<span id="stockTotalCount">0</span>)</span></h2>
-      <div class="search-bar"><span>🔍</span><input type="text" id="stockSearch" placeholder="Search..." oninput="renderStocks()"></div>
+      <div class="search-bar"><span>🔍</span><input type="text" id="stockSearch" placeholder="Search ID, genotype, name, location…" oninput="renderStocks()"></div>
+      <div class="form-row grid-2" style="margin-bottom:1rem;">
+        <div><label>Filter by Stock ID</label><input type="text" id="stockFilterId" placeholder="e.g., S001" oninput="renderStocks()"></div>
+        <div><label>Filter by location</label><input type="text" id="stockFilterLocation" placeholder="e.g., shelf-A" oninput="renderStocks()"></div>
+      </div>
       <div class="filter-row" id="stockFilters"></div>
+      <div class="btn-row can-edit-only" style="margin-top:0; margin-bottom:1rem;">
+        <button class="btn btn-sm" id="flipAllBtn" onclick="flipAllFiltered()">↻ Flip all in current filter (<span id="flipAllCount">0</span>)</button>
+      </div>
       <div class="table-wrap"><table><thead><tr><th>ID</th><th>Genotype</th><th>Type</th><th>Source</th><th>Location</th><th>Flip</th><th>Status</th><th></th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
     </div>
   </div>

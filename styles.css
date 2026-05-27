@@ -149,6 +149,8 @@ input[type="date"], input[type="time"], input[type="datetime-local"] { width: 10
 .btn { padding: 11px 20px; border: none; background: var(--surface-3); color: var(--text-2); border-radius: 12px; cursor: pointer; font-size: 13px; font-weight: 600; font-family: var(--font-body); display: inline-flex; align-items: center; gap: 7px; letter-spacing: -0.01em; box-shadow: var(--shadow-sm); }
 .btn:hover { background: var(--surface-4); transform: translateY(-1px); box-shadow: var(--shadow); }
 .btn:active { transform: translateY(0); }
+.btn:disabled, .btn[disabled] { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: var(--shadow-sm); }
+.btn:disabled:hover, .btn[disabled]:hover { background: var(--surface-3); transform: none; box-shadow: var(--shadow-sm); }
 .btn-primary { background: var(--accent); color: #fff; font-weight: 600; box-shadow: var(--shadow-sm); }
 .btn-primary:hover { background: var(--accent-hover); }
 .btn-success { background: var(--ok); color: #fff; }

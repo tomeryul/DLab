@@ -843,21 +843,79 @@ window.markFlipped = async function(id) {
   const s = data.stocks.find(x => x._id === id);
   await dbUpdate('stocks', id, { flipDate: new Date().toISOString().split('T')[0] });
   logActivity('edit', 'Stocks', `Flipped stock "${s.id}"`);
-  toast('Flipped today');
+  toast('Flipped today', { tone: 'success' });
 };
-function renderStocks() {
-  const tbody = document.getElementById('stockTableBody');
-  if (!tbody) return;
-  const search = document.getElementById('stockSearch')?.value.toLowerCase() || '';
-  const warnDays = data.settings.flipWarnDays, critDays = data.settings.flipCritDays;
-  let filtered = data.stocks.filter(s => {
-    if (search && !`${s.id} ${s.genotype} ${s.name}`.toLowerCase().includes(search)) return false;
+
+// Returns the currently-visible stocks given search + filter inputs.
+// Shared by renderStocks (for display) and flipAllFiltered (for bulk action).
+function currentlyFilteredStocks() {
+  const search = (document.getElementById('stockSearch')?.value || '').toLowerCase().trim();
+  const filterId = (document.getElementById('stockFilterId')?.value || '').toLowerCase().trim();
+  const filterLoc = (document.getElementById('stockFilterLocation')?.value || '').toLowerCase().trim();
+  const warnDays = data.settings.flipWarnDays;
+  return data.stocks.filter(s => {
+    if (search && !`${s.id || ''} ${s.genotype || ''} ${s.name || ''} ${s.location || ''}`.toLowerCase().includes(search)) return false;
+    if (filterId && !(s.id || '').toLowerCase().includes(filterId)) return false;
+    if (filterLoc && !(s.location || '').toLowerCase().includes(filterLoc)) return false;
     if (activeStockFilter === 'all') return true;
     if (activeStockFilter === 'flip-due') { if (!s.flipDate) return false; return (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > warnDays; }
     return s.type === activeStockFilter;
   });
+}
+
+window.flipAllFiltered = async function() {
+  if (!canEdit()) { toast('No permission to edit'); return; }
+  const list = currentlyFilteredStocks();
+  if (list.length === 0) { toast('Nothing to flip in the current filter'); return; }
+  const ok = await confirmDialog({
+    title: `Flip all ${list.length} stock${list.length === 1 ? '' : 's'}?`,
+    body: `Marks every stock in the current filter as flipped today (${new Date().toISOString().split('T')[0]}). This writes to ${list.length} document${list.length === 1 ? '' : 's'} — it cannot be undone in one click.`,
+    confirmLabel: `Flip ${list.length}`,
+  });
+  if (!ok) return;
+  const today = new Date().toISOString().split('T')[0];
+  const btn = document.getElementById('flipAllBtn');
+  if (btn) { btn.disabled = true; btn.textContent = `Flipping ${list.length}…`; }
+  let done = 0, failed = 0;
+  // Run in small parallel chunks to avoid hammering Firestore.
+  const CHUNK = 10;
+  for (let i = 0; i < list.length; i += CHUNK) {
+    const batch = list.slice(i, i + CHUNK);
+    const results = await Promise.allSettled(batch.map(s => dbUpdate('stocks', s._id, { flipDate: today })));
+    results.forEach(r => { if (r.status === 'fulfilled') done++; else failed++; });
+  }
+  logActivity('edit', 'Stocks', `Bulk-flipped ${done} stock${done === 1 ? '' : 's'} (filter: ${describeStockFilter()})`);
+  if (failed === 0) toast(`Flipped ${done} stock${done === 1 ? '' : 's'}`, { tone: 'success' });
+  else toast(`Flipped ${done}, ${failed} failed`, { tone: 'error', ttl: 5000 });
+  // Button gets re-enabled on the next render
+};
+
+function describeStockFilter() {
+  const parts = [];
+  const search = document.getElementById('stockSearch')?.value.trim();
+  const fId = document.getElementById('stockFilterId')?.value.trim();
+  const fLoc = document.getElementById('stockFilterLocation')?.value.trim();
+  if (search) parts.push(`search="${search}"`);
+  if (fId) parts.push(`id~"${fId}"`);
+  if (fLoc) parts.push(`location~"${fLoc}"`);
+  if (activeStockFilter !== 'all') parts.push(`type=${activeStockFilter}`);
+  return parts.length ? parts.join(', ') : 'all';
+}
+
+function renderStocks() {
+  const tbody = document.getElementById('stockTableBody');
+  if (!tbody) return;
+  const filtered = currentlyFilteredStocks();
   document.getElementById('stockTotalCount').textContent = data.stocks.length;
-  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No stocks</td></tr>'; return; }
+  const countEl = document.getElementById('flipAllCount');
+  if (countEl) countEl.textContent = filtered.length;
+  const flipAllBtn = document.getElementById('flipAllBtn');
+  if (flipAllBtn) {
+    flipAllBtn.disabled = filtered.length === 0;
+    // Restore label in case a previous bulk-flip left it as "Flipping…"
+    flipAllBtn.innerHTML = `↻ Flip all in current filter (<span id="flipAllCount">${filtered.length}</span>)`;
+  }
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No stocks match the current filter</td></tr>'; return; }
   tbody.innerHTML = filtered.map(s => {
     const days = s.flipDate ? Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000) : null;
     let flipStatus = '—', status = '<span class="badge b-active">OK</span>';
