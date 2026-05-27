@@ -916,6 +916,7 @@ function renderStocks() {
     flipAllBtn.innerHTML = `↻ Flip all in current filter (<span id="flipAllCount">${filtered.length}</span>)`;
   }
   if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No stocks match the current filter</td></tr>'; return; }
+  const warnDays = data.settings.flipWarnDays, critDays = data.settings.flipCritDays;
   tbody.innerHTML = filtered.map(s => {
     const days = s.flipDate ? Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000) : null;
     let flipStatus = '—', status = '<span class="badge b-active">OK</span>';
