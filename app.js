@@ -347,6 +347,7 @@ function enterApp() {
   paintSkeletons();
   subscribeAll();
   setToday();
+  renderPhenoCounters();
   logActivity('login', 'system', `${currentProfile.name} logged in`);
 }
 
@@ -533,6 +534,12 @@ function populateSelects() {
   const cts = document.getElementById('calTaskSelect');
   if (cts) { const rt = normalizeRecurring(); cts.innerHTML = rt.map(t => `<option value="${t.name.replace(/"/g,'&quot;')}">${t.name}</option>`).join(''); }
   renderRecurTaskList();
+  // Keep phenotype categories in sync with the configured defaults so the
+  // scoring tab always has counters ready before the user saves.
+  if (Array.isArray(data.settings.defaultPhenos) && data.settings.defaultPhenos.length) {
+    phenoCategories = [...data.settings.defaultPhenos];
+    renderPhenoCounters();
+  }
 }
 
 function normalizeRecurring() {
@@ -792,10 +799,16 @@ window.addStock = async function() {
     notes: document.getElementById('stockNotes').value.trim()
   };
   if (!stock.id) { flagField('stockId', 'Stock ID is required'); return; }
-  await dbAdd('stocks', stock);
-  logActivity('create', 'Stocks', `Added stock "${stock.id}" (${stock.genotype})`);
-  ['stockId','stockGenotype','stockName','stockSource','stockLocation','stockNotes'].forEach(id => document.getElementById(id).value = '');
-  toast('Stock added');
+  try {
+    await dbAdd('stocks', stock);
+    logActivity('create', 'Stocks', `Added stock "${stock.id}" (${stock.genotype})`);
+    ['stockId','stockGenotype','stockName','stockSource','stockLocation','stockNotes'].forEach(id => document.getElementById(id).value = '');
+    toast('Stock added', { tone: 'success' });
+  } catch (e) {
+    console.error('addStock failed', e);
+    toast('Save failed: ' + (e && e.message || 'unknown'), { tone: 'error', ttl: 5000 });
+    setSyncStatus('offline');
+  }
 };
 window.deleteStock = async function(id) {
   const s = data.stocks.find(x => x._id === id); if (!s) return;
@@ -875,10 +888,16 @@ window.addCross = async function() {
     status: 'active'
   };
   if (!cross.id) { flagField('crossId', 'Cross ID is required'); return; }
-  await dbAdd('crosses', cross);
-  logActivity('create', 'Crosses', `Added cross "${cross.id}" (${cross.gen}): ${cross.female} × ${cross.male}`);
-  ['crossId','crossFemale','crossMale','crossHypothesis'].forEach(id => document.getElementById(id).value = '');
-  toast('Cross added');
+  try {
+    await dbAdd('crosses', cross);
+    logActivity('create', 'Crosses', `Added cross "${cross.id}" (${cross.gen}): ${cross.female} × ${cross.male}`);
+    ['crossId','crossFemale','crossMale','crossHypothesis'].forEach(id => document.getElementById(id).value = '');
+    toast('Cross added', { tone: 'success' });
+  } catch (e) {
+    console.error('addCross failed', e);
+    toast('Save failed: ' + (e && e.message || 'unknown'), { tone: 'error', ttl: 5000 });
+    setSyncStatus('offline');
+  }
 };
 window.filterCrosses = function(filter, el) { activeCrossFilter = filter; document.querySelectorAll('#crosses .filter-chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderCrosses(); };
 window.toggleCrossStatus = async function(id) {
@@ -950,12 +969,18 @@ window.addVirgin = async function() {
     notes: document.getElementById('virginNotes').value.trim()
   };
   if (!v.date) { flagField('virginDate', 'Date is required'); return; }
-  await dbAdd('virgins', v);
-  logActivity('create', 'Virgins', `Logged ${v.females}♀ ${v.males}♂ from "${v.source}" (${v.session})`);
-  document.getElementById('virginFemales').value = 0;
-  document.getElementById('virginMales').value = 0;
-  document.getElementById('virginNotes').value = '';
-  toast('Collection logged');
+  try {
+    await dbAdd('virgins', v);
+    logActivity('create', 'Virgins', `Logged ${v.females}♀ ${v.males}♂ from "${v.source}" (${v.session})`);
+    document.getElementById('virginFemales').value = 0;
+    document.getElementById('virginMales').value = 0;
+    document.getElementById('virginNotes').value = '';
+    toast('Collection logged', { tone: 'success' });
+  } catch (e) {
+    console.error('addVirgin failed', e);
+    toast('Save failed: ' + (e && e.message || 'unknown'), { tone: 'error', ttl: 5000 });
+    setSyncStatus('offline');
+  }
 };
 window.deleteVirgin = async function(id) {
   const v = data.virgins.find(x => x._id === id); if (!v) return;
@@ -1018,17 +1043,32 @@ function renderPhenoCounters() {
     <button class="action-btn delete" onclick="removeCategory(${i})" style="font-size:10px;">remove</button></div>`).join('');
 }
 window.savePhenotype = async function() {
+  // If counter inputs aren't on the page yet (user opened the tab but never
+  // touched the counters), render them now so the read below can't throw.
+  if (!document.getElementById('counter-0') && document.getElementById('phenoCounters')) {
+    renderPhenoCounters();
+  }
   const counts = {};
   let total = 0;
-  phenoCategories.forEach((cat, i) => { const v = parseInt(document.getElementById(`counter-${i}`).value) || 0; counts[cat] = v; total += v; });
+  phenoCategories.forEach((cat, i) => {
+    const el = document.getElementById(`counter-${i}`);
+    const v = el ? (parseInt(el.value) || 0) : 0;
+    counts[cat] = v; total += v;
+  });
   const p = { vial: document.getElementById('phenoVial').value.trim(), gen: document.getElementById('phenoGen').value, date: document.getElementById('phenoDate').value, counts, total, notes: document.getElementById('phenoNotes').value.trim() };
   if (!p.vial) { flagField('phenoVial', 'Vial/Cross ID is required'); return; }
-  if (total === 0) { toast('Enter at least one count above'); return; }
-  await dbAdd('phenotypes', p);
-  logActivity('create', 'Phenotyping', `Scored "${p.vial}" (${p.gen}), n=${total}`);
-  resetCounters();
-  document.getElementById('phenoNotes').value = '';
-  toast('Saved');
+  if (total === 0) { toast('Enter at least one count above', { tone: 'error' }); return; }
+  try {
+    await dbAdd('phenotypes', p);
+    logActivity('create', 'Phenotyping', `Scored "${p.vial}" (${p.gen}), n=${total}`);
+    resetCounters();
+    document.getElementById('phenoNotes').value = '';
+    toast('Saved', { tone: 'success' });
+  } catch (e) {
+    console.error('savePhenotype failed', e);
+    toast('Save failed: ' + (e && e.message || 'unknown'), { tone: 'error', ttl: 5000 });
+    setSyncStatus('offline');
+  }
 };
 window.deletePheno = async function(id) {
   const p = data.phenotypes.find(x => x._id === id); if (!p) return;
@@ -1086,10 +1126,16 @@ window.addNote = async function() {
   const n = { date: document.getElementById('noteDate').value, title: document.getElementById('noteTitle').value.trim(), hypothesis: document.getElementById('noteHypothesis').value.trim(), methods: document.getElementById('noteMethods').value.trim(), results: document.getElementById('noteResults').value.trim(), conclusion: document.getElementById('noteConclusion').value.trim(), tags: document.getElementById('noteTags').value.trim() };
   if (!n.title) { flagField('noteTitle', 'Title is required'); return; }
   if (!n.date) { flagField('noteDate', 'Date is required'); return; }
-  await dbAdd('notes', n);
-  logActivity('create', 'Notebook', `Added entry "${n.title}"`);
-  ['noteTitle','noteHypothesis','noteMethods','noteResults','noteConclusion','noteTags'].forEach(id => document.getElementById(id).value = '');
-  toast('Saved');
+  try {
+    await dbAdd('notes', n);
+    logActivity('create', 'Notebook', `Added entry "${n.title}"`);
+    ['noteTitle','noteHypothesis','noteMethods','noteResults','noteConclusion','noteTags'].forEach(id => document.getElementById(id).value = '');
+    toast('Saved', { tone: 'success' });
+  } catch (e) {
+    console.error('addNote failed', e);
+    toast('Save failed: ' + (e && e.message || 'unknown'), { tone: 'error', ttl: 5000 });
+    setSyncStatus('offline');
+  }
 };
 window.deleteNote = async function(id) {
   const n = data.notes.find(x => x._id === id); if (!n) return;
@@ -1166,19 +1212,25 @@ window.closeProtocolModal = function() { document.getElementById('protocolModal'
 window.saveProtocol = async function() {
   const p = { name: document.getElementById('protocolName').value.trim(), category: document.getElementById('protocolCategory').value.trim() || 'general', duration: document.getElementById('protocolDuration').value.trim(), materials: document.getElementById('protocolMaterials').value.trim(), steps: document.getElementById('protocolSteps').value.trim(), notes: document.getElementById('protocolNotes').value.trim() };
   if (!p.name) { flagField('protocolName', 'Protocol name is required'); return; }
-  if (editingProtocolIdx) {
-    const existing = data.protocols.find(x => x._id === editingProtocolIdx);
-    if (pendingProtocolFile) p.file = pendingProtocolFile;
-    else if (existing.file) p.file = existing.file;
-    await dbUpdate('protocols', editingProtocolIdx, p);
-    logActivity('edit', 'Protocols', `Edited protocol "${p.name}"`);
-  } else {
-    if (pendingProtocolFile) p.file = pendingProtocolFile;
-    await dbAdd('protocols', p);
-    logActivity('create', 'Protocols', `Added protocol "${p.name}"${p.file ? ' with file ' + p.file.name : ''}`);
+  try {
+    if (editingProtocolIdx) {
+      const existing = data.protocols.find(x => x._id === editingProtocolIdx);
+      if (pendingProtocolFile) p.file = pendingProtocolFile;
+      else if (existing.file) p.file = existing.file;
+      await dbUpdate('protocols', editingProtocolIdx, p);
+      logActivity('edit', 'Protocols', `Edited protocol "${p.name}"`);
+    } else {
+      if (pendingProtocolFile) p.file = pendingProtocolFile;
+      await dbAdd('protocols', p);
+      logActivity('create', 'Protocols', `Added protocol "${p.name}"${p.file ? ' with file ' + p.file.name : ''}`);
+    }
+    closeProtocolModal();
+    toast('Saved to cloud', { tone: 'success' });
+  } catch (e) {
+    console.error('saveProtocol failed', e);
+    toast('Save failed: ' + (e && e.message || 'unknown'), { tone: 'error', ttl: 5000 });
+    setSyncStatus('offline');
   }
-  closeProtocolModal();
-  toast('Saved to cloud');
 };
 window.deleteProtocol = async function(id) {
   const p = data.protocols.find(x => x._id === id); if (!p) return;
