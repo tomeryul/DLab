@@ -40,6 +40,37 @@
   --cat-8-bg: #e2d9c8; --cat-8-fg: #6e6450; /* stone */
 }
 
+/* GARDEN NIGHT — Garden inverted, for late-lab sessions */
+[data-theme="garden-night"] {
+  --bg: #161412;        --bg-deep: #0e0d0b;
+  --surface: #1f1c19;   --surface-2: #25221e;
+  --surface-3: #2d2924; --surface-4: #3a352e;
+  --border: #2c2823;    --border-2: #423d34;
+  --hover: #25221e;
+  --text: #d6cfbf;      --text-bright: #f0e7d2;
+  --text-2: #b0a895;    --text-3: #87806f;
+  --text-muted: #6a6354; --text-faint: #463f35;
+  --accent: #8fbf86;    --accent-hover: #a5d09a;
+  --accent-soft: #2a3826; --accent-ink: #b8d8af;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow: 0 2px 8px rgba(0,0,0,0.35), 0 8px 20px -10px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 32px -16px rgba(0,0,0,0.6);
+  --ok: #8fbf86;   --ok-soft: #2a3826;
+  --warn: #d4a85e; --warn-soft: #3a2d18;
+  --danger: #e08778; --danger-soft: #3b1f1a;
+  --info: #7fa9c8; --info-soft: #1b2c39;
+  --violet: #b39ad4; --violet-soft: #2b223a;
+  /* Category palette — same pastels but with darker bg tone so cards still pop */
+  --cat-1-bg: #314030; --cat-1-fg: #b9d6ad;
+  --cat-2-bg: #443a1e; --cat-2-fg: #ead8a0;
+  --cat-3-bg: #443122; --cat-3-fg: #e8c4a4;
+  --cat-4-bg: #432a2a; --cat-4-fg: #ecbaba;
+  --cat-5-bg: #322a48; --cat-5-fg: #ccc0e8;
+  --cat-6-bg: #243a34; --cat-6-fg: #b4dcc9;
+  --cat-7-bg: #243343; --cat-7-fg: #b6cfe4;
+  --cat-8-bg: #3a342a; --cat-8-fg: #d8cdb4;
+}
+
 /* ROSE QUARTZ — soft rosy neutral */
 [data-theme="warm-dark"] {
   --bg: #f7f4f5; --bg-deep: #ede5e8; --surface: #ffffff; --surface-2: #faf6f7;
@@ -325,14 +356,17 @@ body.no-edit .action-btn.delete, body.no-edit .action-btn.edit-btn, body.no-edit
 .search-bar input { border: none; background: transparent; padding: 3px 0; box-shadow: none; }
 .search-bar input:focus { box-shadow: none; }
 .filter-row { display: flex; gap: 8px; margin-bottom: 1.25rem; flex-wrap: wrap; }
-.filter-chip { padding: 6px 14px; background: var(--surface); border: none; border-radius: 999px; color: var(--text-3); cursor: pointer; font-size: 12px; font-weight: 600; box-shadow: inset 0 0 0 1px var(--border-2); letter-spacing: -.005em; }
-.filter-chip:hover { color: var(--text-bright); background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--text-faint); }
-.filter-chip.active { background: var(--accent); color: #fff; box-shadow: 0 4px 12px -4px color-mix(in srgb, var(--accent) 60%, transparent); }
+.filter-chip { padding: 7px 14px; background: var(--surface-2); border: none; border-radius: 12px; color: var(--text-2); cursor: pointer; font-size: 12.5px; font-weight: 600; box-shadow: inset 0 0 0 1px var(--border-2); letter-spacing: -.005em; transition: all .15s var(--ease-soft); }
+.filter-chip:hover { color: var(--text-bright); background: var(--surface); box-shadow: inset 0 0 0 1px var(--text-faint); transform: translateY(-1px); }
+.filter-chip.active { background: var(--accent-soft); color: var(--accent-ink); box-shadow: inset 0 0 0 1px var(--accent); font-weight: 700; transform: translateY(0); }
+.filter-chip.active:hover { background: var(--accent-soft); color: var(--accent-ink); transform: translateY(-1px); }
 
-.phenotype-counter { background: var(--surface-2); padding: 16px; border-radius: 15px; text-align: center; border: none; box-shadow: var(--shadow-sm); }
-.counter-controls { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; }
-.counter-btn { width: 32px; height: 32px; border-radius: 50%; border: none; background: var(--surface); color: var(--accent-ink); cursor: pointer; font-size: 16px; font-weight: 700; box-shadow: var(--shadow-sm); }
-.counter-btn:hover { background: var(--accent); color: #fff; }
+.phenotype-counter { background: var(--cat-bg, var(--surface-2)); color: var(--cat-fg, var(--text-bright)); padding: 16px 14px 14px; border-radius: 16px; text-align: center; border: none; box-shadow: var(--shadow-sm); transition: transform .15s var(--ease-soft), box-shadow .2s var(--ease-soft); }
+.phenotype-counter:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+.phenotype-counter > label { color: var(--cat-fg, var(--text-3)) !important; font-weight: 700 !important; opacity: 0.95; }
+.counter-controls { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
+.counter-btn { width: 30px; height: 30px; border-radius: 50%; border: none; background: color-mix(in srgb, var(--cat-fg, var(--accent)) 12%, var(--surface) 80%); color: var(--cat-fg, var(--accent-ink)); cursor: pointer; font-size: 16px; font-weight: 700; box-shadow: var(--shadow-sm); }
+.counter-btn:hover { background: var(--cat-fg, var(--accent)); color: var(--cat-bg, #fff); }
 
 .chi-result { background: var(--surface-2); padding: 1.4rem; border-radius: var(--radius-sm); margin-top: 1.25rem; border: none; box-shadow: var(--shadow-sm); }
 .chi-value { font-size: 32px; font-weight: 600; color: var(--accent-ink); font-family: var(--font-display); letter-spacing: -0.02em; }
@@ -566,6 +600,66 @@ tr.row-highlight td { animation: rowPulseCell 1.4s var(--ease-soft); }
   .section-overview { grid-template-columns: repeat(2, 1fr); }
   .sec-tile { min-height: 78px; padding: 12px; }
   .sec-tile-count { font-size: 26px; }
+}
+
+/* ============================================================
+   Toggle switch — modern iOS-style. Use anywhere you'd otherwise
+   reach for a "yes/no select" or a checkbox.
+   Markup: <label class="toggle"><input type="checkbox"><span class="toggle-track"></span><span class="toggle-text">Label</span></label>
+   ============================================================ */
+.toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; font-size: 13px; font-weight: 600; color: var(--text-2); }
+.toggle input[type="checkbox"] { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+.toggle-track {
+  position: relative; flex: none;
+  width: 36px; height: 20px;
+  background: var(--surface-3);
+  border-radius: 999px;
+  transition: background .2s var(--ease-soft);
+  box-shadow: inset 0 0 0 1px var(--border-2);
+}
+.toggle-track::after {
+  content: '';
+  position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px;
+  background: var(--surface);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.18), 0 1px 1px rgba(0,0,0,0.08);
+  transition: transform .2s var(--ease);
+}
+.toggle input:checked ~ .toggle-track { background: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.toggle input:checked ~ .toggle-track::after { transform: translateX(16px); background: #fff; }
+.toggle input:focus-visible ~ .toggle-track { outline: 2px solid var(--accent); outline-offset: 3px; }
+.toggle:hover .toggle-track { box-shadow: inset 0 0 0 1px var(--text-faint); }
+.toggle:hover input:checked ~ .toggle-track { box-shadow: inset 0 0 0 1px var(--accent); }
+.toggle.toggle-sm .toggle-track { width: 30px; height: 17px; }
+.toggle.toggle-sm .toggle-track::after { width: 13px; height: 13px; }
+.toggle.toggle-sm input:checked ~ .toggle-track::after { transform: translateX(13px); }
+.toggle.toggle-danger input:checked ~ .toggle-track { background: var(--danger); box-shadow: inset 0 0 0 1px var(--danger); }
+.toggle-text { line-height: 1.2; }
+.toggle-hint { font-size: 11px; font-weight: 500; color: var(--text-muted); }
+
+/* ============================================================
+   Topbar light/dark quick toggle — the sun/moon button between
+   ⌘K and the export menu. Flips between data-theme="garden" and
+   data-theme="garden-night" without opening Settings.
+   ============================================================ */
+.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px;
+  background: var(--surface-2);
+  border: none; border-radius: 11px;
+  color: var(--text-2); cursor: pointer;
+  box-shadow: inset 0 0 0 1px var(--border-2);
+  font-size: 16px; line-height: 1;
+  transition: background .15s var(--ease-soft), color .15s var(--ease-soft);
+}
+.theme-toggle:hover { background: var(--surface); color: var(--text-bright); box-shadow: inset 0 0 0 1px var(--text-faint); }
+.theme-toggle .toggle-ico-sun { display: inline; }
+.theme-toggle .toggle-ico-moon { display: none; }
+[data-theme="garden-night"] .theme-toggle .toggle-ico-sun { display: none; }
+[data-theme="garden-night"] .theme-toggle .toggle-ico-moon { display: inline; }
+@media (max-width: 600px) {
+  .theme-toggle { width: 34px; height: 34px; font-size: 15px; }
 }
 
 @media print {

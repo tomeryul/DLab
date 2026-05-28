@@ -63,18 +63,32 @@ let authMode = 'login';
 let unsubscribers = [];
 
 const THEMES = [
-  { id: 'garden',     name: 'Garden',      swatches: ['#f5f1e6', '#5a8a5e', '#2d2924'] },
-  { id: 'warm-dark',  name: 'Rose Quartz', swatches: ['#f7f4f5', '#c98a9b', '#2c2429'] },
-  { id: 'warm-light', name: 'Sky Mist',    swatches: ['#f2f5f7', '#6fa3c0', '#232a30'] },
-  { id: 'cool-dark',  name: 'Sage Paper',  swatches: ['#f3f6f2', '#7faa84', '#262d26'] },
-  { id: 'midnight',   name: 'Lavender',    swatches: ['#f5f4f8', '#9a8fc4', '#28252e'] }
+  { id: 'garden',       name: 'Garden',       swatches: ['#f5f1e6', '#5a8a5e', '#2d2924'] },
+  { id: 'garden-night', name: 'Garden Night', swatches: ['#161412', '#8fbf86', '#f0e7d2'] },
+  { id: 'warm-dark',    name: 'Rose Quartz',  swatches: ['#f7f4f5', '#c98a9b', '#2c2429'] },
+  { id: 'warm-light',   name: 'Sky Mist',     swatches: ['#f2f5f7', '#6fa3c0', '#232a30'] },
+  { id: 'cool-dark',    name: 'Sage Paper',   swatches: ['#f3f6f2', '#7faa84', '#262d26'] },
+  { id: 'midnight',     name: 'Lavender',     swatches: ['#f5f4f8', '#9a8fc4', '#28252e'] }
 ];
+// Which themes count as "night" for the topbar sun/moon toggle — used to decide
+// whether the toggle flips to the day or the night counterpart of the current theme.
+const NIGHT_THEMES = new Set(['garden-night']);
+
 function applyTheme(id) {
   document.documentElement.setAttribute('data-theme', id);
   localStorage.setItem('flyLabTheme', id);
   renderThemePicker();
 }
 window.applyTheme = applyTheme;
+
+// Topbar sun/moon button — flips Garden ↔ Garden Night.
+// If the user is on any other theme, jumps them into Garden Night the first
+// time they click and then toggles between Garden and Garden Night thereafter.
+window.toggleDarkMode = function() {
+  const current = document.documentElement.getAttribute('data-theme') || 'garden';
+  const next = NIGHT_THEMES.has(current) ? 'garden' : 'garden-night';
+  applyTheme(next);
+};
 function renderThemePicker() {
   const cont = document.getElementById('themePicker');
   if (!cont) return;
@@ -728,10 +742,14 @@ function renderScheduleSettings() {
   const cont = document.getElementById('scheduleSettings');
   if (!cont) return;
   cont.innerHTML = data.settings.schedule.map((s, i) => `
-    <div class="setting-row"><div style="display:flex; gap:8px; align-items:center; flex:1;">
+    <div class="setting-row"><div style="display:flex; gap:10px; align-items:center; flex:1;">
       <input type="time" value="${s.time}" onchange="updateSchedule(${i}, 'time', this.value)" style="width:110px;">
       <input type="text" value="${s.desc}" onchange="updateSchedule(${i}, 'desc', this.value)">
-      <select onchange="updateSchedule(${i}, 'priority', this.value)" style="width:120px;"><option value="" ${!s.priority?'selected':''}>Normal</option><option value="critical" ${s.priority==='critical'?'selected':''}>Critical</option></select>
+      <label class="toggle toggle-sm toggle-danger" title="Mark as critical">
+        <input type="checkbox" ${s.priority === 'critical' ? 'checked' : ''} onchange="updateSchedule(${i}, 'priority', this.checked ? 'critical' : '')">
+        <span class="toggle-track"></span>
+        <span class="toggle-text">Critical</span>
+      </label>
     </div><button class="action-btn delete" onclick="removeSchedule(${i})">🗑</button></div>`).join('');
 }
 
@@ -1107,11 +1125,16 @@ window.resetCounters = function() { phenoCategories = [...data.settings.defaultP
 function renderPhenoCounters() {
   const cont = document.getElementById('phenoCounters');
   if (!cont) return;
-  cont.innerHTML = phenoCategories.map((cat, i) => `<div class="phenotype-counter"><label style="text-transform:none; letter-spacing:0;">${cat}</label>
-    <div class="counter-controls"><button class="counter-btn" onclick="adjustCounter(${i}, -1)">−</button>
-    <input type="number" id="counter-${i}" value="0" min="0" style="background:transparent;border:none;box-shadow:none;text-align:center;color:var(--text-bright);width:60px;font-size:24px;font-weight:700;padding:0;">
-    <button class="counter-btn" onclick="adjustCounter(${i}, 1)">+</button></div>
-    <button class="action-btn delete" onclick="removeCategory(${i})" style="font-size:10px;">remove</button></div>`).join('');
+  cont.innerHTML = phenoCategories.map((cat, i) => {
+    const n = (i % 8) + 1;
+    return `<div class="phenotype-counter" style="--cat-bg:var(--cat-${n}-bg); --cat-fg:var(--cat-${n}-fg);">
+      <label style="text-transform:none; letter-spacing:0;">${escapeHtml(cat)}</label>
+      <div class="counter-controls"><button class="counter-btn" onclick="adjustCounter(${i}, -1)">−</button>
+      <input type="number" id="counter-${i}" value="0" min="0" style="background:transparent;border:none;box-shadow:none;text-align:center;color:var(--cat-fg, var(--text-bright));width:60px;font-size:24px;font-weight:700;padding:0;">
+      <button class="counter-btn" onclick="adjustCounter(${i}, 1)">+</button></div>
+      <button class="action-btn delete" onclick="removeCategory(${i})" style="font-size:10px; color:var(--cat-fg, var(--text-muted)); opacity:0.65;">remove</button>
+    </div>`;
+  }).join('');
 }
 window.savePhenotype = async function() {
   // If counter inputs aren't on the page yet (user opened the tab but never
