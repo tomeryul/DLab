@@ -364,17 +364,58 @@ window.toggleNotifications = async function(checked) {
   toast('Notifications on', { tone: 'success' });
   checkAlerts();
 };
-function fireNotif(key, title, body) {
+// Notification cooldown so reopening the app doesn't fire the same alert
+// multiple times in a row. Keyed in localStorage so it survives reloads.
+const NOTIF_HISTORY_KEY = 'flyLabNotifHistory';
+function _notifHistory() { try { return JSON.parse(localStorage.getItem(NOTIF_HISTORY_KEY) || '{}'); } catch (e) { return {}; } }
+function _saveNotifHistory(h) { try { localStorage.setItem(NOTIF_HISTORY_KEY, JSON.stringify(h)); } catch (e) {} }
+
+function fireNotif(key, title, body, opts) {
+  opts = opts || {};
+  const cooldownMs = (opts.cooldownHours != null ? opts.cooldownHours : 6) * 3600 * 1000;
+  const hist = _notifHistory();
+  if (hist[key] && Date.now() - hist[key] < cooldownMs) return;
+  // Session-level dedupe (same instance)
   if (_firedNotifs.has(key)) return;
   _firedNotifs.add(key);
+  hist[key] = Date.now();
+  _saveNotifHistory(hist);
   try {
     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-      navigator.serviceWorker.ready.then(reg => reg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png', tag: key }));
+      navigator.serviceWorker.ready.then(reg => reg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png', tag: key, requireInteraction: !!opts.persistent }));
     } else {
       new Notification(title, { body, icon: 'icon-192.png', tag: key });
     }
   } catch (e) { /* graceful no-op */ }
 }
+
+// Schedule a notification at a specific future timestamp.
+// Uses Notification Triggers (TimestampTrigger) when the browser supports it
+// (Chrome desktop + Android in installed PWA mode). Falls back to a no-op
+// elsewhere — the catch-up-on-open path will still surface the alert when
+// the user next opens the app.
+async function scheduleNotif(key, title, body, fireAt) {
+  if (!notifEnabled()) return false;
+  if (Date.now() >= fireAt) return false;
+  if (typeof Notification === 'undefined' || !('showTrigger' in Notification.prototype)) return false;
+  if (typeof TimestampTrigger === 'undefined') return false;
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    // Remove any prior scheduled notification for this key
+    const existing = await reg.getNotifications({ tag: key, includeTriggered: false }).catch(() => []);
+    existing.forEach(n => n.close && n.close());
+    await reg.showNotification(title, {
+      body, icon: 'icon-192.png', badge: 'icon-192.png', tag: key,
+      showTrigger: new TimestampTrigger(fireAt),
+      requireInteraction: true
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+window.scheduleNotif = scheduleNotif;
+
 function checkAlerts() {
   if (!notifEnabled()) return;
   const critDays = (data.settings && data.settings.flipCritDays) || 14;
@@ -382,12 +423,13 @@ function checkAlerts() {
     if (!s.flipDate) return;
     const d = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000);
     if (d > critDays) {
-      const dayKey = new Date().toISOString().split('T')[0];
-      fireNotif(`flip-${s._id}-${dayKey}`, '🔥 Flip overdue', `${s.id} is ${d} days since last flip.`);
+      // 12-hour cooldown — if user reopens the app within 12hr, no repeat
+      fireNotif(`flip-${s._id}`, '🔥 Flip overdue', `${s.id} is ${d} days since last flip.`, { cooldownHours: 12, persistent: true });
     }
   });
-  // Virgin window: any virgin entry logged today whose computed close time
-  // is within the next 30 minutes
+  // Virgin window: any virgin entry whose computed close time is within the next 30 min
+  // AND schedule a future trigger (browsers that support it) so we get notified
+  // even when the app is closed.
   const winHrs = (data.settings && data.settings.virginWindow25) || 12;
   (data.virgins || []).forEach(v => {
     if (!v.date || !v.time) return;
@@ -396,7 +438,10 @@ function checkAlerts() {
     const closesAt = collected.getTime() + winHrs * 3600 * 1000;
     const minsLeft = (closesAt - Date.now()) / 60000;
     if (minsLeft > 0 && minsLeft < 30) {
-      fireNotif(`vw-${v._id}`, '⏰ Virgin window closing', `${v.source || 'a collection'} closes in ${Math.round(minsLeft)} min.`);
+      fireNotif(`vw-${v._id}`, '⏰ Virgin window closing', `${v.source || 'a collection'} closes in ${Math.round(minsLeft)} min.`, { cooldownHours: 1, persistent: true });
+    } else if (minsLeft >= 30 && minsLeft <= 48 * 60) {
+      // Pre-schedule a trigger for 30 minutes before window close, where supported
+      scheduleNotif(`vw-${v._id}`, '⏰ Virgin window closing', `${v.source || 'a collection'} closes in ~30 min.`, closesAt - 30 * 60 * 1000);
     }
   });
 }

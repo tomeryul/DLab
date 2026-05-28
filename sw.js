@@ -2,7 +2,7 @@
 // Strategy: cache the app shell for instant load + offline UI.
 // NEVER cache Firebase / Google APIs — those must always hit the network for live data.
 
-const CACHE = 'flylab-shell-v9';
+const CACHE = 'flylab-shell-v10';
 const SHELL = [
   './index.html',
   './styles.css',
