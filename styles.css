@@ -1,7 +1,7 @@
 :root {
-  --radius: 20px;
-  --radius-sm: 14px;
-  --radius-lg: 26px;
+  --radius: 22px;
+  --radius-sm: 16px;
+  --radius-lg: 28px;
   --font-display: 'Spectral', Georgia, serif;
   --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'Plus Jakarta Sans', ui-monospace, monospace;
@@ -9,7 +9,38 @@
   --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ROSE QUARTZ — soft rosy neutral (default) */
+/* GARDEN — warm cream + soft pastels + dense rounded tiles (default) */
+[data-theme="garden"] {
+  --bg: #f5f1e6;        --bg-deep: #ece6d4;
+  --surface: #ffffff;   --surface-2: #faf7ed;
+  --surface-3: #f0ebdb; --surface-4: #e2dac4;
+  --border: #ece6d4;    --border-2: #ddd4bd;
+  --hover: #f7f3e6;
+  --text: #2d2924;      --text-bright: #1a1714;
+  --text-2: #56504a;    --text-3: #847b6f;
+  --text-muted: #a89e8f; --text-faint: #ccc3b2;
+  --accent: #5a8a5e;    --accent-hover: #487049;
+  --accent-soft: #d8e9d3; --accent-ink: #2e5a32;
+  --shadow-sm: 0 1px 2px rgba(80,70,40,0.04);
+  --shadow: 0 2px 8px rgba(80,70,40,0.06), 0 8px 20px -10px rgba(80,70,40,0.08);
+  --shadow-lg: 0 6px 20px rgba(80,70,40,0.08), 0 18px 48px -16px rgba(80,70,40,0.14);
+  --ok: #5a8a5e;   --ok-soft: #d8e9d3;
+  --warn: #b7821b; --warn-soft: #f3e4c0;
+  --danger: #b85544; --danger-soft: #f3d8d1;
+  --info: #4a7fa5;   --info-soft: #d6e3ed;
+  --violet: #8a6fa8; --violet-soft: #e6dcef;
+  /* Category palette — soft pastels, used for stock-type overview tiles */
+  --cat-1-bg: #d5e6c8; --cat-1-fg: #4d6a40; /* sage */
+  --cat-2-bg: #f4e5b4; --cat-2-fg: #8a6e1c; /* butter */
+  --cat-3-bg: #f4d4b8; --cat-3-fg: #9e5e36; /* peach */
+  --cat-4-bg: #f0cccc; --cat-4-fg: #a05050; /* blush */
+  --cat-5-bg: #d6cce9; --cat-5-fg: #6a548e; /* lavender */
+  --cat-6-bg: #c6e0d8; --cat-6-fg: #3f7a66; /* mint */
+  --cat-7-bg: #cbdcec; --cat-7-fg: #45709c; /* sky */
+  --cat-8-bg: #e2d9c8; --cat-8-fg: #6e6450; /* stone */
+}
+
+/* ROSE QUARTZ — soft rosy neutral */
 [data-theme="warm-dark"] {
   --bg: #f7f4f5; --bg-deep: #ede5e8; --surface: #ffffff; --surface-2: #faf6f7;
   --surface-3: #f1e9ec; --surface-4: #e6d8de; --border: #ede1e5; --border-2: #ddc9d0;
@@ -22,6 +53,14 @@
   --ok: #6fae8e; --ok-soft: #e6f2eb; --warn: #d4a256; --warn-soft: #f7efdd;
   --danger: #d08a8a; --danger-soft: #f6e6e6; --info: #7d9ec9; --info-soft: #e8eff7;
   --violet: #a292c4; --violet-soft: #efe9f5;
+  --cat-1-bg: #d5e6c8; --cat-1-fg: #4d6a40;
+  --cat-2-bg: #f4e5b4; --cat-2-fg: #8a6e1c;
+  --cat-3-bg: #f4d4b8; --cat-3-fg: #9e5e36;
+  --cat-4-bg: #f0cccc; --cat-4-fg: #a05050;
+  --cat-5-bg: #d6cce9; --cat-5-fg: #6a548e;
+  --cat-6-bg: #c6e0d8; --cat-6-fg: #3f7a66;
+  --cat-7-bg: #cbdcec; --cat-7-fg: #45709c;
+  --cat-8-bg: #e2d9c8; --cat-8-fg: #6e6450;
 }
 /* SKY MIST — calm sky blue neutral */
 [data-theme="warm-light"] {
@@ -36,6 +75,14 @@
   --ok: #6fae8e; --ok-soft: #e6f2eb; --warn: #d4a256; --warn-soft: #f7efdd;
   --danger: #d08a8a; --danger-soft: #f6e6e6; --info: #7d9ec9; --info-soft: #e8eff7;
   --violet: #a292c4; --violet-soft: #efe9f5;
+  --cat-1-bg: #d5e6c8; --cat-1-fg: #4d6a40;
+  --cat-2-bg: #f4e5b4; --cat-2-fg: #8a6e1c;
+  --cat-3-bg: #f4d4b8; --cat-3-fg: #9e5e36;
+  --cat-4-bg: #f0cccc; --cat-4-fg: #a05050;
+  --cat-5-bg: #d6cce9; --cat-5-fg: #6a548e;
+  --cat-6-bg: #c6e0d8; --cat-6-fg: #3f7a66;
+  --cat-7-bg: #cbdcec; --cat-7-fg: #45709c;
+  --cat-8-bg: #e2d9c8; --cat-8-fg: #6e6450;
 }
 /* SAGE PAPER — quiet paper green */
 [data-theme="cool-dark"] {
@@ -50,6 +97,14 @@
   --ok: #6fae8e; --ok-soft: #e6f2eb; --warn: #d4a256; --warn-soft: #f7efdd;
   --danger: #d08a8a; --danger-soft: #f6e6e6; --info: #7d9ec9; --info-soft: #e8eff7;
   --violet: #a292c4; --violet-soft: #efe9f5;
+  --cat-1-bg: #d5e6c8; --cat-1-fg: #4d6a40;
+  --cat-2-bg: #f4e5b4; --cat-2-fg: #8a6e1c;
+  --cat-3-bg: #f4d4b8; --cat-3-fg: #9e5e36;
+  --cat-4-bg: #f0cccc; --cat-4-fg: #a05050;
+  --cat-5-bg: #d6cce9; --cat-5-fg: #6a548e;
+  --cat-6-bg: #c6e0d8; --cat-6-fg: #3f7a66;
+  --cat-7-bg: #cbdcec; --cat-7-fg: #45709c;
+  --cat-8-bg: #e2d9c8; --cat-8-fg: #6e6450;
 }
 /* LAVENDER — soft lavender study */
 [data-theme="midnight"] {
@@ -64,6 +119,14 @@
   --ok: #6fae8e; --ok-soft: #e6f2eb; --warn: #d4a256; --warn-soft: #f7efdd;
   --danger: #d08a8a; --danger-soft: #f6e6e6; --info: #7d9ec9; --info-soft: #e8eff7;
   --violet: #a292c4; --violet-soft: #efe9f5;
+  --cat-1-bg: #d5e6c8; --cat-1-fg: #4d6a40;
+  --cat-2-bg: #f4e5b4; --cat-2-fg: #8a6e1c;
+  --cat-3-bg: #f4d4b8; --cat-3-fg: #9e5e36;
+  --cat-4-bg: #f0cccc; --cat-4-fg: #a05050;
+  --cat-5-bg: #d6cce9; --cat-5-fg: #6a548e;
+  --cat-6-bg: #c6e0d8; --cat-6-fg: #3f7a66;
+  --cat-7-bg: #cbdcec; --cat-7-fg: #45709c;
+  --cat-8-bg: #e2d9c8; --cat-8-fg: #6e6450;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -436,6 +499,74 @@ tr.row-highlight td { animation: rowPulseCell 1.4s var(--ease-soft); }
 .cmdk-hint { padding: 9px 16px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .cmdk-hint kbd { font-family: var(--font-body); background: var(--surface-3); padding: 1px 6px; border-radius: 5px; font-weight: 700; font-size: 10px; color: var(--text-2); }
 .cmdk-hint-sep { color: var(--text-faint); }
+
+/* ============================================================
+   "Garden" — soft pastels, rounded chunky tiles, dense layout
+   Inspired by Beadaptify's warehouse dashboard reference.
+   ============================================================ */
+
+/* Tighten the global dashboard gaps so cards feel packed, not airy */
+#dashboard.tab-content { display: flex; flex-direction: column; gap: 0.75rem; }
+#dashboard .card { margin-bottom: 0; }
+#dashboard .grid { gap: 0.75rem; }
+
+/* Welcome card — denser, less padding */
+.welcome-card { padding: 1.4rem 1.6rem !important; }
+.welcome-card h2 { margin-bottom: 0.15rem; font-size: 22px; }
+.welcome-card .section-sub { margin-top: 0.1rem; margin-bottom: 1.1rem; }
+
+/* Section overview — horizontal pastel tiles, one per stock type */
+.section-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+  gap: 8px;
+  margin-top: 0.4rem;
+}
+.sec-tile {
+  border-radius: 16px;
+  padding: 14px 14px 12px;
+  background: var(--cat-bg, var(--surface-3));
+  color: var(--cat-fg, var(--text-2));
+  display: flex; flex-direction: column; gap: 4px;
+  cursor: pointer;
+  position: relative;
+  min-height: 86px;
+  border: 1px solid transparent;
+  transition: transform .15s var(--ease), box-shadow .2s var(--ease-soft), border-color .15s var(--ease-soft);
+}
+.sec-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow); border-color: color-mix(in srgb, var(--cat-fg, var(--text-3)) 30%, transparent); }
+.sec-tile.is-active { box-shadow: 0 0 0 2px var(--cat-fg, var(--accent)) inset, var(--shadow); }
+.sec-tile-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.85; line-height: 1.2; }
+.sec-tile-count { font-family: var(--font-display); font-size: 30px; font-weight: 600; line-height: 1; margin-top: auto; letter-spacing: -0.02em; }
+.sec-tile-sub { font-size: 10px; font-weight: 600; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* Stat cards — denser, more compact, with subtle delta indicator */
+#dashboard .stat-card { padding: 1.1rem 1.2rem 1.15rem; border-radius: 18px; }
+#dashboard .stat-value { font-size: 32px; line-height: 1.05; }
+#dashboard .stat-label { margin-bottom: 0.4rem; }
+.stat-delta { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 10px; margin-top: 8px; background: var(--accent-soft); color: var(--accent-ink); }
+.stat-delta.is-warn { background: var(--warn-soft); color: var(--warn); }
+.stat-delta.is-danger { background: var(--danger-soft); color: var(--danger); }
+.stat-delta.is-neutral { background: var(--surface-3); color: var(--text-3); }
+
+/* Mini bar chart (sparkline-ish) — pure CSS bars, for "virgins this week" */
+.mini-bars { display: flex; align-items: flex-end; gap: 6px; height: 60px; padding-top: 8px; }
+.mini-bar { flex: 1; background: var(--accent-soft); border-radius: 4px 4px 2px 2px; min-height: 4px; position: relative; transition: background .2s var(--ease-soft); }
+.mini-bar.is-today { background: var(--accent); }
+.mini-bar:hover { background: var(--accent-hover); }
+.mini-bar-labels { display: flex; gap: 6px; margin-top: 6px; }
+.mini-bar-labels span { flex: 1; text-align: center; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.mini-bar-labels span.is-today { color: var(--accent-ink); font-weight: 700; }
+
+/* Dashboard cards: slightly tighter padding overall */
+#dashboard .card { padding: 1.4rem 1.5rem; }
+#dashboard .card h2 { font-size: 19px; margin-bottom: 1rem; }
+
+@media (max-width: 600px) {
+  .section-overview { grid-template-columns: repeat(2, 1fr); }
+  .sec-tile { min-height: 78px; padding: 12px; }
+  .sec-tile-count { font-size: 26px; }
+}
 
 @media print {
   .sidebar, .topbar, .nav-backdrop, .cmdk-bg, .btn-row, .action-btn { display: none !important; }

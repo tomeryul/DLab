@@ -63,10 +63,11 @@ let authMode = 'login';
 let unsubscribers = [];
 
 const THEMES = [
-  { id: 'warm-dark', name: 'Rose Quartz', swatches: ['#f7f4f5', '#c98a9b', '#2c2429'] },
-  { id: 'warm-light', name: 'Sky Mist', swatches: ['#f2f5f7', '#6fa3c0', '#232a30'] },
-  { id: 'cool-dark', name: 'Sage Paper', swatches: ['#f3f6f2', '#7faa84', '#262d26'] },
-  { id: 'midnight', name: 'Lavender', swatches: ['#f5f4f8', '#9a8fc4', '#28252e'] }
+  { id: 'garden',     name: 'Garden',      swatches: ['#f5f1e6', '#5a8a5e', '#2d2924'] },
+  { id: 'warm-dark',  name: 'Rose Quartz', swatches: ['#f7f4f5', '#c98a9b', '#2c2429'] },
+  { id: 'warm-light', name: 'Sky Mist',    swatches: ['#f2f5f7', '#6fa3c0', '#232a30'] },
+  { id: 'cool-dark',  name: 'Sage Paper',  swatches: ['#f3f6f2', '#7faa84', '#262d26'] },
+  { id: 'midnight',   name: 'Lavender',    swatches: ['#f5f4f8', '#9a8fc4', '#28252e'] }
 ];
 function applyTheme(id) {
   document.documentElement.setAttribute('data-theme', id);
@@ -1458,6 +1459,79 @@ function refreshDashboard() {
   if (flipList) flipList.innerHTML = flipsDue.length === 0 ? '<div class="empty-state"><p>✓ All current</p></div>' : flipsDue.slice(0, 5).map(s => { const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000); return `<li class="task-item"><span class="task-time" style="color:var(--warn);">${days}d</span><span class="task-desc"><strong>${s.id}</strong> — ${s.genotype || s.name || ''}</span><span class="task-priority">Flip!</span></li>`; }).join('');
   const activeCrossList = document.getElementById('activeCrossList');
   if (activeCrossList) { const active = data.crosses.filter(c => c.status === 'active').slice(0, 5); activeCrossList.innerHTML = active.length === 0 ? '<div class="empty-state"><p>No active crosses</p></div>' : active.map(c => { const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0; return `<li class="task-item"><span class="task-time">Day ${day}</span><span class="task-desc"><strong>${c.id}</strong> (${c.gen}) — ${c.female} × ${c.male}</span></li>`; }).join(''); }
+  renderSectionOverview();
+  renderVirginsWeekChart();
+}
+
+// Garden dashboard — pastel tile per stock type, with click-through to filtered Stocks list
+function renderSectionOverview() {
+  const cont = document.getElementById('sectionOverview');
+  if (!cont) return;
+  const types = [...(data.settings.stockTypes || [])];
+  const warnDays = data.settings.flipWarnDays;
+  const isDue = (s) => s.flipDate && (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > warnDays;
+  const tiles = types.map((t, i) => {
+    const items = data.stocks.filter(s => s.type === t);
+    return { type: t, label: t, count: items.length, due: items.filter(isDue).length, idx: (i % 8) + 1 };
+  });
+  const untyped = data.stocks.filter(s => !s.type);
+  if (untyped.length > 0) {
+    tiles.push({ type: '', label: 'Untyped', count: untyped.length, due: untyped.filter(isDue).length, idx: 8 });
+  }
+  if (tiles.length === 0) {
+    cont.innerHTML = '<div class="empty-state" style="padding:1rem; grid-column:1/-1;"><p>No stock types configured yet</p></div>';
+    return;
+  }
+  cont.innerHTML = tiles.map(t => {
+    const sub = t.due > 0
+      ? `<span class="sec-tile-sub" style="color:var(--danger);">${t.due} due</span>`
+      : `<span class="sec-tile-sub">on shelf</span>`;
+    return `<div class="sec-tile" data-type="${escapeHtml(t.type)}" style="--cat-bg:var(--cat-${t.idx}-bg); --cat-fg:var(--cat-${t.idx}-fg);">
+      <div class="sec-tile-label">${escapeHtml(t.label)}</div>
+      <div class="sec-tile-count">${t.count}</div>
+      ${sub}
+    </div>`;
+  }).join('');
+  cont.querySelectorAll('.sec-tile').forEach(el => {
+    el.addEventListener('click', () => jumpToStockType(el.dataset.type));
+  });
+}
+
+// Click a Section Overview tile → switch to Stocks tab + apply the type filter
+function jumpToStockType(type) {
+  activeStockFilter = type || 'all';
+  const tabBtn = document.querySelector('.sidebar .tab-btn[data-tab="stocks"]');
+  if (tabBtn) tabBtn.click();
+  if (typeof window.renderStockFilters === 'function') window.renderStockFilters();
+  if (typeof window.renderStocks === 'function') window.renderStocks();
+}
+window.jumpToStockType = jumpToStockType;
+
+// Garden dashboard — pure-CSS bar chart of virgin yield for the last 7 days
+function renderVirginsWeekChart() {
+  const cont = document.getElementById('virginsWeekChart');
+  if (!cont) return;
+  const today = new Date();
+  const days = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const label = d.toLocaleDateString('en-US', { weekday: 'short' });
+    const total = data.virgins.filter(v => v.date === key).reduce((s, v) => s + (+v.females || 0) + (+v.males || 0), 0);
+    days.push({ key, label, total, isToday: i === 0 });
+  }
+  const max = Math.max(...days.map(d => d.total));
+  if (max === 0) {
+    cont.innerHTML = '<div class="empty-state" style="padding:1rem;"><p>No virgins collected this week</p></div>';
+    return;
+  }
+  const bars = days.map(d => {
+    const h = d.total === 0 ? 4 : Math.max(8, Math.round((d.total / max) * 100));
+    return `<div class="mini-bar ${d.isToday ? 'is-today' : ''}" style="height:${h}%;" title="${d.label}: ${d.total}"></div>`;
+  }).join('');
+  const labels = days.map(d => `<span class="${d.isToday ? 'is-today' : ''}">${escapeHtml(d.label)}</span>`).join('');
+  cont.innerHTML = `<div class="mini-bars">${bars}</div><div class="mini-bar-labels">${labels}</div>`;
 }
 
 window.toggleExportMenu = function() { document.getElementById('exportDropdown').classList.toggle('hidden'); };
