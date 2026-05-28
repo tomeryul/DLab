@@ -100,14 +100,21 @@
     <div class="content-scroll">
 
   <div id="dashboard" class="tab-content">
+    <div id="nextAction" class="next-action is-calm" onclick="handleNextActionClick()">
+      <div class="next-action-ico">☕</div>
+      <div class="next-action-body">
+        <div class="next-action-kicker">What's next</div>
+        <div class="next-action-title">Lab is calm — no urgent actions</div>
+      </div>
+    </div>
     <div class="card welcome-card">
       <h2>👋 Welcome back, <span id="welcomeName"></span></h2>
       <p class="section-sub" id="dateDisplay"></p>
       <div class="grid grid-4">
-        <div class="stat-card"><div class="stat-label">Active Stocks</div><div class="stat-value" id="stockCount">0</div><span id="stockDelta"></span></div>
-        <div class="stat-card"><div class="stat-label">Active Crosses</div><div class="stat-value" id="crossCount">0</div><span id="crossDelta"></span></div>
-        <div class="stat-card"><div class="stat-label">Virgins Today</div><div class="stat-value" id="virginToday">0</div><span id="virginDelta"></span></div>
-        <div class="stat-card"><div class="stat-label">Flip Alerts</div><div class="stat-value" id="flipAlert">0</div><span id="flipDelta"></span></div>
+        <div class="stat-card"><div class="stat-label">Active Stocks</div><div class="stat-value" id="stockCount">0</div><div id="sparkStocks"></div></div>
+        <div class="stat-card"><div class="stat-label">Active Crosses</div><div class="stat-value" id="crossCount">0</div><div id="sparkCrosses"></div></div>
+        <div class="stat-card"><div class="stat-label">Virgins Today</div><div class="stat-value" id="virginToday">0</div><div id="sparkVirgins"></div></div>
+        <div class="stat-card"><div class="stat-label">Flip Alerts</div><div class="stat-value" id="flipAlert">0</div><div id="sparkFlips"></div></div>
       </div>
     </div>
     <div class="card">
@@ -189,7 +196,7 @@
       <div class="btn-row can-edit-only" style="margin-top:0; margin-bottom:1rem;">
         <button class="btn btn-sm" id="flipAllBtn" onclick="flipAllFiltered()">↻ Flip all in current filter (<span id="flipAllCount">0</span>)</button>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Genotype</th><th>Type</th><th>Source</th><th>Location</th><th>Flip</th><th>Status</th><th></th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>ID</th><th>Genotype</th><th>Type</th><th>Source</th><th>Location</th><th>Flip</th><th>Status</th><th></th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
     </div>
   </div>
 
@@ -224,7 +231,7 @@
         <div class="filter-chip" onclick="filterCrosses('F1', this)">F1</div>
         <div class="filter-chip" onclick="filterCrosses('F2', this)">F2</div>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>ID</th><th>Gen</th><th>♀ × ♂</th><th>Setup</th><th>Day</th><th>Temp</th><th>Status</th><th></th></tr></thead><tbody id="crossTableBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>ID</th><th>Gen</th><th>♀ × ♂</th><th>Setup</th><th>Day</th><th>Temp</th><th>Status</th><th></th></tr></thead><tbody id="crossTableBody"></tbody></table></div>
     </div>
   </div>
 
@@ -256,7 +263,7 @@
         <div class="stat-card"><div class="stat-label">This week</div><div class="stat-value" id="virginsWeek">0</div></div>
         <div class="stat-card"><div class="stat-label">All time</div><div class="stat-value" id="virginsAll">0</div></div>
       </div>
-      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Time</th><th>Session</th><th>Source</th><th>♀</th><th>♂</th><th>Container</th><th>Temp</th><th></th></tr></thead><tbody id="virginTableBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>Date</th><th>Time</th><th>Session</th><th>Source</th><th>♀</th><th>♂</th><th>Container</th><th>Temp</th><th></th></tr></thead><tbody id="virginTableBody"></tbody></table></div>
     </div>
   </div>
 
@@ -283,7 +290,7 @@
     </div>
     <div class="card">
       <h2>📋 Phenotype records</h2>
-      <div class="table-wrap"><table><thead><tr><th>Date</th><th>Vial</th><th>Gen</th><th>Categories</th><th>Total</th><th>Notes</th><th></th></tr></thead><tbody id="phenoTableBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>Date</th><th>Vial</th><th>Gen</th><th>Categories</th><th>Total</th><th>Notes</th><th></th></tr></thead><tbody id="phenoTableBody"></tbody></table></div>
     </div>
   </div>
 
@@ -326,6 +333,15 @@
       <h2>🎨 Appearance</h2>
       <p class="section-sub">Choose your theme — saved on this device.</p>
       <div class="theme-picker" id="themePicker"></div>
+    </div>
+    <div class="card">
+      <h2>🔔 Lab alerts</h2>
+      <p class="section-sub">Quiet browser notifications when a stock crosses the flip deadline or a virgin window is about to close.</p>
+      <label class="toggle" style="margin-top:0.4rem;">
+        <input type="checkbox" id="notifToggle" onchange="toggleNotifications(this.checked)">
+        <span class="toggle-track"></span>
+        <span class="toggle-text">Send alerts to this device</span>
+      </label>
     </div>
     <div class="card">
       <h2>⚙️ Daily schedule</h2>
@@ -377,6 +393,15 @@
   </div>
 
     </div><!-- /.content-scroll -->
+
+    <button class="fab hidden can-edit-only" id="fab" onclick="onFabClick()" aria-label="Add new record">+</button>
+
+    <div class="bulk-bar can-edit-only" id="bulkBar" aria-live="polite">
+      <div class="bulk-bar-count"><strong id="bulkBarCount">0</strong> selected</div>
+      <button class="btn btn-sm" onclick="bulkClearSelection()">Clear</button>
+      <button class="btn btn-sm" onclick="bulkExport()">📥 Export</button>
+      <button class="btn btn-sm btn-danger" onclick="bulkDelete()">🗑 Delete</button>
+    </div>
   </div><!-- /.main -->
 </div>
 

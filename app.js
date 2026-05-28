@@ -136,6 +136,356 @@ function escapeHtml(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 }
 
+/* ============================================================
+   Comfort Wave utilities — smart defaults, FAB, sparklines,
+   "Next up" widget, notifications, bulk select.
+   ============================================================ */
+
+// Smart defaults: remember the last non-empty value per form field
+const DEFAULTS_KEY = 'flyLabDefaults';
+function _loadDefaults() {
+  try { return JSON.parse(localStorage.getItem(DEFAULTS_KEY) || '{}'); } catch (e) { return {}; }
+}
+function _saveDefaults(d) {
+  try { localStorage.setItem(DEFAULTS_KEY, JSON.stringify(d)); } catch (e) {}
+}
+function captureDefaults(formKey, fieldIds) {
+  const store = _loadDefaults();
+  store[formKey] = store[formKey] || {};
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const v = el.value;
+    if (v != null && String(v).trim() !== '') store[formKey][id] = v;
+  });
+  _saveDefaults(store);
+}
+function applyDefaults(formKey, fieldIds) {
+  const store = _loadDefaults();
+  const remembered = store[formKey] || {};
+  fieldIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || !remembered[id]) return;
+    if (el.value == null || el.value === '' || el.value === '0') el.value = remembered[id];
+  });
+}
+function applyAllDefaults() {
+  applyDefaults('virgin', ['virginSource', 'virginContainer', 'virginTemp', 'virginSession']);
+  applyDefaults('cross',  ['crossContainer', 'crossNFemales', 'crossNMales', 'crossTemp', 'crossGen']);
+  applyDefaults('pheno',  ['phenoGen']);
+  applyDefaults('stock',  ['stockType', 'stockSource', 'stockLocation', 'stockChrom']);
+  applyDefaults('note',   ['noteTags']);
+}
+
+// FAB visibility per tab + click → scroll to the primary "+" form on the
+// current tab and focus the first empty input inside it
+const FAB_TABS = { stocks:1, crosses:1, virgins:1, phenotype:1, notebook:1, protocols:1 };
+function updateFabVisibility() {
+  const fab = document.getElementById('fab');
+  if (!fab) return;
+  const active = document.querySelector('.sidebar .tab-btn.active');
+  const tab = active && active.dataset.tab;
+  const show = !!FAB_TABS[tab];
+  fab.classList.toggle('hidden', !show);
+}
+window.onFabClick = function() {
+  const active = document.querySelector('.sidebar .tab-btn.active');
+  const tab = active && active.dataset.tab;
+  if (tab === 'protocols') { if (window.openProtocolModal) window.openProtocolModal(); return; }
+  const tabEl = document.getElementById(tab);
+  if (!tabEl) return;
+  const primaryBtn = tabEl.querySelector('.btn-primary');
+  if (!primaryBtn) return;
+  const card = primaryBtn.closest('.card') || primaryBtn;
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const firstInput = card.querySelector('input:not([type=checkbox]):not([type=hidden]), select, textarea');
+  setTimeout(() => firstInput && firstInput.focus(), 300);
+};
+
+// Sparkline — tiny inline SVG line + filled area
+function buildSparkline(values) {
+  if (!values || values.length < 2) {
+    return '<svg class="sparkline" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,10 L100,10"/></svg>';
+  }
+  const max = Math.max(...values, 1);
+  const min = Math.min(...values, 0);
+  const range = Math.max(max - min, 1);
+  const n = values.length;
+  const w = 100, h = 20;
+  const pts = values.map((v, i) => {
+    const x = (i / (n - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 2) - 1;
+    return [x, y];
+  });
+  const linePath = pts.map((p, i) => (i === 0 ? `M${p[0].toFixed(2)},${p[1].toFixed(2)}` : `L${p[0].toFixed(2)},${p[1].toFixed(2)}`)).join(' ');
+  const fillPath = linePath + ` L${w},${h} L0,${h} Z`;
+  return `<svg class="sparkline" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+    <path class="sparkline-fill" d="${fillPath}"/>
+    <path d="${linePath}"/>
+  </svg>`;
+}
+
+// "Next up" widget — picks the single most urgent action.
+// Returns { ico, kicker, title, cta, action, tone } or a calm fallback.
+function computeNextAction() {
+  const now = new Date();
+  const hour = now.getHours();
+  const settings = data.settings || {};
+
+  // 1. flip-overdue takes priority when anything is past flipCritDays
+  const critDays = settings.flipCritDays || 14;
+  const warnDays = settings.flipWarnDays || 10;
+  const worstFlip = (data.stocks || []).map(s => {
+    if (!s.flipDate) return null;
+    const d = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000);
+    return d > warnDays ? { stock: s, days: d } : null;
+  }).filter(Boolean).sort((a, b) => b.days - a.days)[0];
+  if (worstFlip && worstFlip.days > critDays) {
+    return {
+      ico: '🔥',
+      kicker: 'Flip overdue',
+      title: `${worstFlip.stock.id} is ${worstFlip.days} days since last flip — flip now`,
+      cta: 'Go to Stocks',
+      action: () => jumpToStockType(''),
+      tone: 'is-danger'
+    };
+  }
+
+  // 2. critical-priority schedule items within the current hour
+  const sched = (settings.schedule || []).filter(s => s.priority === 'critical');
+  const sameHour = sched.find(s => {
+    const t = parseInt((s.time || '').split(':')[0], 10);
+    return !isNaN(t) && t === hour;
+  });
+  if (sameHour) {
+    return {
+      ico: '⏰',
+      kicker: `Scheduled for ${sameHour.time}`,
+      title: sameHour.desc,
+      cta: 'Open calendar',
+      action: () => { const btn = document.querySelector('.sidebar .tab-btn[data-tab="calendar"]'); if (btn) btn.click(); },
+      tone: ''
+    };
+  }
+
+  // 3. warn-level flips (between warn and crit)
+  if (worstFlip) {
+    return {
+      ico: '⚠️',
+      kicker: 'Flip due soon',
+      title: `${worstFlip.stock.id} hits ${critDays}-day limit soon (${worstFlip.days}d since last flip)`,
+      cta: 'Review',
+      action: () => jumpToStockType(''),
+      tone: ''
+    };
+  }
+
+  // 4. virgin-window awareness — the next critical schedule slot today
+  const upcoming = sched
+    .map(s => ({ s, h: parseInt((s.time || '').split(':')[0], 10) }))
+    .filter(x => !isNaN(x.h) && x.h > hour)
+    .sort((a, b) => a.h - b.h)[0];
+  if (upcoming) {
+    return {
+      ico: '🗓',
+      kicker: `Upcoming · ${upcoming.s.time}`,
+      title: upcoming.s.desc,
+      cta: '',
+      action: null,
+      tone: 'is-calm'
+    };
+  }
+
+  // 5. calm fallback
+  return { ico: '☕', kicker: "What's next", title: 'Lab is calm — no urgent actions', cta: '', action: null, tone: 'is-calm' };
+}
+function renderNextAction() {
+  const cont = document.getElementById('nextAction');
+  if (!cont) return;
+  const a = computeNextAction();
+  cont.className = 'next-action ' + (a.tone || '');
+  cont.innerHTML = `
+    <div class="next-action-ico">${a.ico}</div>
+    <div class="next-action-body">
+      <div class="next-action-kicker">${escapeHtml(a.kicker)}</div>
+      <div class="next-action-title">${escapeHtml(a.title)}</div>
+    </div>
+    ${a.cta ? `<button class="next-action-cta" type="button">${escapeHtml(a.cta)}</button>` : ''}`;
+  const btn = cont.querySelector('.next-action-cta');
+  if (btn && a.action) btn.addEventListener('click', (e) => { e.stopPropagation(); a.action(); });
+  cont._action = a.action;
+}
+window.handleNextActionClick = function() {
+  const cont = document.getElementById('nextAction');
+  if (cont && cont._action) cont._action();
+};
+
+// Browser notifications for flip-due and virgin-window critical events
+const NOTIF_PERM_KEY = 'flyLabNotifPerm';
+const NOTIF_ENABLED_KEY = 'flyLabNotifEnabled';
+const _firedNotifs = new Set();
+function notifEnabled() {
+  if (typeof Notification === 'undefined') return false;
+  if (Notification.permission !== 'granted') return false;
+  return localStorage.getItem(NOTIF_ENABLED_KEY) !== '0';
+}
+window.toggleNotifications = async function(checked) {
+  if (!checked) {
+    localStorage.setItem(NOTIF_ENABLED_KEY, '0');
+    toast('Notifications off');
+    return;
+  }
+  if (typeof Notification === 'undefined') {
+    toast('This browser doesn\'t support notifications', { tone: 'error' });
+    document.getElementById('notifToggle').checked = false;
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    toast('Permission was blocked — enable it in browser settings', { tone: 'error', ttl: 5000 });
+    document.getElementById('notifToggle').checked = false;
+    return;
+  }
+  if (Notification.permission !== 'granted') {
+    const ok = await confirmDialog({
+      title: 'Send lab alerts to this device?',
+      body: 'You\'ll get a quiet notification when a stock crosses the flip deadline or a virgin window is about to close. No external data is sent — alerts are computed right here.',
+      confirmLabel: 'Allow'
+    });
+    if (!ok) { document.getElementById('notifToggle').checked = false; return; }
+    const perm = await Notification.requestPermission();
+    localStorage.setItem(NOTIF_PERM_KEY, perm);
+    if (perm !== 'granted') {
+      document.getElementById('notifToggle').checked = false;
+      toast('Permission not granted', { tone: 'error' });
+      return;
+    }
+  }
+  localStorage.setItem(NOTIF_ENABLED_KEY, '1');
+  toast('Notifications on', { tone: 'success' });
+  checkAlerts();
+};
+function fireNotif(key, title, body) {
+  if (_firedNotifs.has(key)) return;
+  _firedNotifs.add(key);
+  try {
+    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then(reg => reg.showNotification(title, { body, icon: 'icon-192.png', badge: 'icon-192.png', tag: key }));
+    } else {
+      new Notification(title, { body, icon: 'icon-192.png', tag: key });
+    }
+  } catch (e) { /* graceful no-op */ }
+}
+function checkAlerts() {
+  if (!notifEnabled()) return;
+  const critDays = (data.settings && data.settings.flipCritDays) || 14;
+  (data.stocks || []).forEach(s => {
+    if (!s.flipDate) return;
+    const d = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000);
+    if (d > critDays) {
+      const dayKey = new Date().toISOString().split('T')[0];
+      fireNotif(`flip-${s._id}-${dayKey}`, '🔥 Flip overdue', `${s.id} is ${d} days since last flip.`);
+    }
+  });
+  // Virgin window: any virgin entry logged today whose computed close time
+  // is within the next 30 minutes
+  const winHrs = (data.settings && data.settings.virginWindow25) || 12;
+  (data.virgins || []).forEach(v => {
+    if (!v.date || !v.time) return;
+    const collected = new Date(`${v.date}T${v.time}`);
+    if (isNaN(+collected)) return;
+    const closesAt = collected.getTime() + winHrs * 3600 * 1000;
+    const minsLeft = (closesAt - Date.now()) / 60000;
+    if (minsLeft > 0 && minsLeft < 30) {
+      fireNotif(`vw-${v._id}`, '⏰ Virgin window closing', `${v.source || 'a collection'} closes in ${Math.round(minsLeft)} min.`);
+    }
+  });
+}
+setInterval(() => { try { checkAlerts(); } catch (e) {} }, 60000);
+
+// Bulk selection — Map<collection, Set<id>>
+const bulkSel = { stocks: new Set(), crosses: new Set(), virgins: new Set(), phenotypes: new Set() };
+function bulkActiveCollection() {
+  const active = document.querySelector('.sidebar .tab-btn.active');
+  const tab = active && active.dataset.tab;
+  if (tab === 'stocks') return 'stocks';
+  if (tab === 'crosses') return 'crosses';
+  if (tab === 'virgins') return 'virgins';
+  if (tab === 'phenotype') return 'phenotypes';
+  return null;
+}
+function bulkUpdateBar() {
+  const bar = document.getElementById('bulkBar');
+  const countEl = document.getElementById('bulkBarCount');
+  if (!bar || !countEl) return;
+  const coll = bulkActiveCollection();
+  const n = coll ? bulkSel[coll].size : 0;
+  countEl.textContent = n;
+  const visible = n > 0;
+  bar.classList.toggle('is-visible', visible);
+  document.body.classList.toggle('has-bulk-bar', visible);
+}
+window.bulkToggleRow = function(coll, id, checked) {
+  if (!bulkSel[coll]) return;
+  if (checked) bulkSel[coll].add(id); else bulkSel[coll].delete(id);
+  bulkUpdateBar();
+};
+window.bulkClearSelection = function() {
+  const coll = bulkActiveCollection();
+  if (coll) bulkSel[coll].clear();
+  document.querySelectorAll('.row-check:checked').forEach(c => c.checked = false);
+  bulkUpdateBar();
+};
+window.bulkExport = function() {
+  const coll = bulkActiveCollection();
+  if (!coll) return;
+  const ids = [...bulkSel[coll]];
+  if (ids.length === 0) { toast('Nothing selected'); return; }
+  const rows = (data[coll] || []).filter(r => ids.includes(r._id))
+    .map(r => { const { _id, ...rest } = r; return rest; });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), coll);
+  XLSX.writeFile(wb, `flylab-${coll}-selection-${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast(`Exported ${ids.length} ${coll}`, { tone: 'success' });
+};
+window.bulkDelete = async function() {
+  if (!canDelete()) { toast('No permission to delete'); return; }
+  const coll = bulkActiveCollection();
+  if (!coll) return;
+  const ids = [...bulkSel[coll]];
+  if (ids.length === 0) { toast('Nothing selected'); return; }
+  const ok = await confirmDialog({
+    title: `Delete ${ids.length} ${coll}?`,
+    body: `This removes ${ids.length} record${ids.length === 1 ? '' : 's'}. You can undo for a few seconds.`,
+    confirmLabel: `Delete ${ids.length}`,
+    danger: true
+  });
+  if (!ok) return;
+  const snapshots = ids.map(id => (data[coll] || []).find(r => r._id === id)).filter(Boolean);
+  setSyncStatus('syncing');
+  const results = await Promise.allSettled(ids.map(id => deleteDoc(doc(db, coll, id))));
+  const done = results.filter(r => r.status === 'fulfilled').length;
+  const failed = results.length - done;
+  logActivity('delete', coll, `Bulk-deleted ${done} ${coll}`);
+  bulkSel[coll].clear();
+  bulkUpdateBar();
+  toast(`Deleted ${done}${failed ? ` · ${failed} failed` : ''}`, {
+    key: 'bulk-undo',
+    ttl: 7000,
+    tone: failed ? 'error' : 'success',
+    actionLabel: 'Undo all',
+    onAction: async () => {
+      setSyncStatus('syncing');
+      const restoreResults = await Promise.allSettled(snapshots.map(rec => {
+        const { _id, ...payload } = rec;
+        return setDoc(doc(db, coll, _id), payload);
+      }));
+      const restored = restoreResults.filter(r => r.status === 'fulfilled').length;
+      logActivity('edit', coll, `Bulk-restored ${restored} ${coll}`);
+      toast(`Restored ${restored}`, { tone: 'success' });
+    }
+  });
+};
+
 // Field-level validation helper. Marks an input red with a message;
 // auto-clears on next user input.
 function flagField(elOrId, msg) {
@@ -363,16 +713,21 @@ function enterApp() {
   subscribeAll();
   setToday();
   renderPhenoCounters();
+  applyAllDefaults();
+  updateFabVisibility();
+  // Hydrate the notifications toggle from saved state
+  const notifToggle = document.getElementById('notifToggle');
+  if (notifToggle) notifToggle.checked = notifEnabled();
   logActivity('login', 'system', `${currentProfile.name} logged in`);
 }
 
 // Paint shimmer placeholder rows into every record table until first Firestore snapshot fills them.
 function paintSkeletons() {
   const targets = [
-    { id: 'stockTableBody', cols: 8 },
-    { id: 'crossTableBody', cols: 8 },
-    { id: 'virginTableBody', cols: 9 },
-    { id: 'phenoTableBody', cols: 7 },
+    { id: 'stockTableBody', cols: 9 },
+    { id: 'crossTableBody', cols: 9 },
+    { id: 'virginTableBody', cols: 10 },
+    { id: 'phenoTableBody', cols: 8 },
     { id: 'logTableBody', cols: 6 },
     { id: 'usersTableBody', cols: 6 }
   ];
@@ -534,6 +889,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     if (btn.dataset.tab === 'logs') renderLogs();
     if (btn.dataset.tab === 'calendar') renderCalendarDay();
     if (btn.dataset.tab === 'users') renderUsers();
+    // Comfort Wave: show/hide FAB based on tab + reset bulk-bar to active tab
+    updateFabVisibility();
+    bulkUpdateBar();
   });
 });
 
@@ -832,6 +1190,7 @@ window.addStock = async function() {
   try {
     await dbAdd('stocks', stock);
     logActivity('create', 'Stocks', `Added stock "${stock.id}" (${stock.genotype})`);
+    captureDefaults('stock', ['stockType', 'stockSource', 'stockLocation', 'stockChrom']);
     ['stockId','stockGenotype','stockName','stockSource','stockLocation','stockNotes'].forEach(id => document.getElementById(id).value = '');
     toast('Stock added', { tone: 'success' });
   } catch (e) {
@@ -945,7 +1304,7 @@ function renderStocks() {
     // Restore label in case a previous bulk-flip left it as "Flipping…"
     flipAllBtn.innerHTML = `↻ Flip all in current filter (<span id="flipAllCount">${filtered.length}</span>)`;
   }
-  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No stocks match the current filter</td></tr>'; return; }
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-3);">No stocks match the current filter</td></tr>'; return; }
   const warnDays = data.settings.flipWarnDays, critDays = data.settings.flipCritDays;
   tbody.innerHTML = filtered.map(s => {
     const days = s.flipDate ? Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000) : null;
@@ -955,7 +1314,7 @@ function renderStocks() {
       else if (days > warnDays) { flipStatus = `<span style="color:var(--warn);">${days}d</span>`; status = '<span class="badge b-warn">Soon</span>'; }
       else flipStatus = `<span style="color:var(--ok);">${days}d</span>`;
     }
-    return `<tr data-record-id="${s._id}"><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:var(--text-muted);">' + s.name + '</span>' : ''}</td>
+    return `<tr data-record-id="${s._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="stocks" data-id="${s._id}" onchange="bulkToggleRow('stocks', '${s._id}', this.checked)" ${bulkSel.stocks.has(s._id) ? 'checked' : ''}></td><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:var(--text-muted);">' + s.name + '</span>' : ''}</td>
       <td style="font-family:monospace; font-size:12px;">${s.genotype || '—'}</td><td>${s.type || '—'}</td><td>${s.source || '—'}</td>
       <td style="font-family:monospace; font-size:12px;">${s.location || '—'}</td><td>${flipStatus}</td><td>${status}</td>
       <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Mark flipped today" onclick="markFlipped('${s._id}')">↻</button><button class="action-btn edit-btn" title="Edit" onclick="editStock('${s._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deleteStock('${s._id}')">🗑</button></td></tr>`;
@@ -980,6 +1339,7 @@ window.addCross = async function() {
   try {
     await dbAdd('crosses', cross);
     logActivity('create', 'Crosses', `Added cross "${cross.id}" (${cross.gen}): ${cross.female} × ${cross.male}`);
+    captureDefaults('cross', ['crossContainer', 'crossNFemales', 'crossNMales', 'crossTemp', 'crossGen']);
     ['crossId','crossFemale','crossMale','crossHypothesis'].forEach(id => document.getElementById(id).value = '');
     toast('Cross added', { tone: 'success' });
   } catch (e) {
@@ -1034,10 +1394,10 @@ function renderCrosses() {
     if (activeCrossFilter === 'active' || activeCrossFilter === 'complete') return c.status === activeCrossFilter;
     return c.gen === activeCrossFilter;
   });
-  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No crosses</td></tr>'; return; }
+  if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-3);">No crosses</td></tr>'; return; }
   tbody.innerHTML = filtered.map(c => {
     const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0;
-    return `<tr data-record-id="${c._id}"><td><strong>${c.id}</strong></td><td><span class="badge b-${c.gen.toLowerCase()}">${c.gen}</span></td>
+    return `<tr data-record-id="${c._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="crosses" data-id="${c._id}" onchange="bulkToggleRow('crosses', '${c._id}', this.checked)" ${bulkSel.crosses.has(c._id) ? 'checked' : ''}></td><td><strong>${c.id}</strong></td><td><span class="badge b-${c.gen.toLowerCase()}">${c.gen}</span></td>
       <td style="font-family:monospace; font-size:11px;">${c.female || '?'} <span style="color:var(--text-muted);">×</span> ${c.male || '?'}</td>
       <td>${c.date ? new Date(c.date).toLocaleDateString() : '—'}</td><td><strong>Day ${day}</strong></td>
       <td>${c.temp || 25}°C</td><td><span class="badge b-${c.status === 'active' ? 'active' : 'done'}">${c.status}</span></td>
@@ -1061,6 +1421,7 @@ window.addVirgin = async function() {
   try {
     await dbAdd('virgins', v);
     logActivity('create', 'Virgins', `Logged ${v.females}♀ ${v.males}♂ from "${v.source}" (${v.session})`);
+    captureDefaults('virgin', ['virginSource', 'virginContainer', 'virginTemp', 'virginSession']);
     document.getElementById('virginFemales').value = 0;
     document.getElementById('virginMales').value = 0;
     document.getElementById('virginNotes').value = '';
@@ -1104,8 +1465,8 @@ function renderVirgins() {
   const tbody = document.getElementById('virginTableBody');
   if (!tbody) return;
   const sorted = [...data.virgins].sort((a,b) => (b.created||0) - (a.created||0));
-  if (sorted.length === 0) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-3);">No collections</td></tr>';
-  else tbody.innerHTML = sorted.map(v => `<tr data-record-id="${v._id}"><td>${new Date(v.date).toLocaleDateString()}</td><td style="font-family:monospace;">${v.time || '—'}</td>
+  if (sorted.length === 0) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:2rem; color:var(--text-3);">No collections</td></tr>';
+  else tbody.innerHTML = sorted.map(v => `<tr data-record-id="${v._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="virgins" data-id="${v._id}" onchange="bulkToggleRow('virgins', '${v._id}', this.checked)" ${bulkSel.virgins.has(v._id) ? 'checked' : ''}></td><td>${new Date(v.date).toLocaleDateString()}</td><td style="font-family:monospace;">${v.time || '—'}</td>
       <td><span class="badge ${v.session === 'AM' ? 'b-f1' : 'b-f2'}">${v.session}</span></td><td>${v.source || '—'}</td>
       <td><span class="badge b-female">${v.females}</span></td><td><span class="badge b-male">${v.males}</span></td>
       <td>${v.container || '—'}</td><td>${v.temp}°C</td>
@@ -1155,6 +1516,7 @@ window.savePhenotype = async function() {
   try {
     await dbAdd('phenotypes', p);
     logActivity('create', 'Phenotyping', `Scored "${p.vial}" (${p.gen}), n=${total}`);
+    captureDefaults('pheno', ['phenoGen']);
     resetCounters();
     document.getElementById('phenoNotes').value = '';
     toast('Saved', { tone: 'success' });
@@ -1191,10 +1553,10 @@ function renderPhenotypes() {
   const tbody = document.getElementById('phenoTableBody');
   if (!tbody) return;
   const sorted = [...data.phenotypes].sort((a,b) => (b.created||0) - (a.created||0));
-  if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem; color:var(--text-3);">No data</td></tr>'; return; }
+  if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No data</td></tr>'; return; }
   tbody.innerHTML = sorted.map(p => {
     const summary = Object.entries(p.counts).filter(([_,v]) => v > 0).map(([k,v]) => `${k}: ${v}`).join(' • ');
-    return `<tr data-record-id="${p._id}"><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${p.vial}</strong></td>
+    return `<tr data-record-id="${p._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="phenotypes" data-id="${p._id}" onchange="bulkToggleRow('phenotypes', '${p._id}', this.checked)" ${bulkSel.phenotypes.has(p._id) ? 'checked' : ''}></td><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${p.vial}</strong></td>
       <td><span class="badge b-${p.gen.toLowerCase()}">${p.gen}</span></td><td style="font-size:11px;">${summary}</td>
       <td><strong>${p.total}</strong></td><td style="font-size:11px; color:var(--text-muted);">${(p.notes || '').substring(0, 30)}</td>
       <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editPheno('${p._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deletePheno('${p._id}')">🗑</button></td></tr>`;
@@ -1484,6 +1846,39 @@ function refreshDashboard() {
   if (activeCrossList) { const active = data.crosses.filter(c => c.status === 'active').slice(0, 5); activeCrossList.innerHTML = active.length === 0 ? '<div class="empty-state"><p>No active crosses</p></div>' : active.map(c => { const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0; return `<li class="task-item"><span class="task-time">Day ${day}</span><span class="task-desc"><strong>${c.id}</strong> (${c.gen}) — ${c.female} × ${c.male}</span></li>`; }).join(''); }
   renderSectionOverview();
   renderVirginsWeekChart();
+  renderDashboardSparklines();
+  renderNextAction();
+  checkAlerts();
+}
+
+// 7-day sparkline data series for each stat card
+function renderDashboardSparklines() {
+  const days = [];
+  const today = new Date();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(today); d.setDate(today.getDate() - i);
+    days.push(d.toISOString().split('T')[0]);
+  }
+  // Active crosses: cumulative count of crosses still active each day
+  const crossesPerDay = days.map(key => (data.crosses || []).filter(c =>
+    c.date && c.date <= key && (c.status === 'active' || (c.completedAt && c.completedAt.split('T')[0] > key))
+  ).length);
+  // Virgins per day total (♀+♂)
+  const virginsPerDay = days.map(key => (data.virgins || []).filter(v => v.date === key).reduce((s, v) => s + (+v.females || 0) + (+v.males || 0), 0));
+  // Flips per day: number of stocks whose flipDate matches that day
+  const flipsPerDay = days.map(key => (data.stocks || []).filter(s => s.flipDate === key).length);
+  // Stocks count is mostly monotonic — show its arrival curve
+  const stockOrder = (data.stocks || []).filter(s => s.created).map(s => new Date(s.created).toISOString().split('T')[0]);
+  const stocksPerDay = days.map(key => stockOrder.filter(d => d <= key).length);
+
+  const ss = document.getElementById('sparkStocks');
+  const sc = document.getElementById('sparkCrosses');
+  const sv = document.getElementById('sparkVirgins');
+  const sf = document.getElementById('sparkFlips');
+  if (ss) ss.innerHTML = buildSparkline(stocksPerDay);
+  if (sc) sc.innerHTML = buildSparkline(crossesPerDay);
+  if (sv) sv.innerHTML = buildSparkline(virginsPerDay);
+  if (sf) sf.innerHTML = buildSparkline(flipsPerDay);
 }
 
 // Garden dashboard — pastel tile per stock type, with click-through to filtered Stocks list
