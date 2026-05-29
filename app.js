@@ -10,7 +10,7 @@ import { getMessaging, getToken as fcmGetToken, onMessage as fcmOnMessage, isSup
 // key into this string. Until then, FCM is skipped and the app
 // falls back to the existing foreground-only notifications.
 // =============================================================
-const VAPID_KEY = "5lIhMevKGtc1R31Y-g-QuyEpKr7QbiL1fm_K_5IvxcY";
+const VAPID_KEY = "BJKUA38MyKbgNzRjnooSN7FncR9MZERDoBCJiUNUDDdIxA9x6D8a9puV5FC3Bd9G6yNWKmlPHt8hwdJdBGSSOtQ";
 const isVAPIDConfigured = () => VAPID_KEY && VAPID_KEY !== "PASTE_YOUR_VAPID_PUBLIC_KEY_HERE";
 
 const firebaseConfig = {
