@@ -13,6 +13,8 @@ import { getMessaging } from 'firebase-admin/messaging';
 const FLIP_COOLDOWN_HRS = 12;
 const VIRGIN_COOLDOWN_HRS = 1;
 const VIRGIN_LEAD_MIN = 30;        // notify this long before the window closes
+const SCHEDULE_WINDOW_MIN = 15;    // grace window after a scheduled slot
+const LOCAL_TZ = 'Asia/Jerusalem'; // schedule times are stored as local HH:MM
 
 function readServiceAccount() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -36,6 +38,19 @@ function readServiceAccount() {
 initializeApp({ credential: cert(readServiceAccount()) });
 const db = getFirestore();
 const fcm = getMessaging();
+
+function nowInLocalTZ(now = new Date()) {
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: LOCAL_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hour12: false
+  });
+  const p = Object.fromEntries(fmt.formatToParts(now).map(x => [x.type, x.value]));
+  return {
+    ymd: `${p.year}-${p.month}-${p.day}`,
+    minutes: parseInt(p.hour, 10) * 60 + parseInt(p.minute, 10)
+  };
+}
 
 function computeAlerts(stocks, virgins, settings) {
   const out = [];
@@ -74,6 +89,26 @@ function computeAlerts(stocks, virgins, settings) {
       });
     }
   }
+
+  // 3. Daily schedule — fire once per day per slot when local clock catches up
+  const schedule = Array.isArray(settings.schedule) ? settings.schedule : [];
+  const local = nowInLocalTZ();
+  schedule.forEach((s, idx) => {
+    if (!s || !s.time || !s.desc) return;
+    const m = String(s.time).match(/^(\d{1,2}):(\d{2})$/);
+    if (!m) return;
+    const schedMin = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+    const delta = local.minutes - schedMin;
+    if (delta < 0 || delta > SCHEDULE_WINDOW_MIN) return;
+    const isCrit = s.priority === 'critical';
+    out.push({
+      key: `sched-${local.ymd}-${idx}-${s.time}`,
+      title: isCrit ? `🚨 ${s.time} — Critical` : `🗓 ${s.time} — Reminder`,
+      body: s.desc,
+      cooldownHours: 23,
+      meta: { type: 'schedule', idx, time: s.time }
+    });
+  });
 
   return out;
 }
