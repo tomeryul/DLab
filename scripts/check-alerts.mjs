@@ -168,20 +168,20 @@ async function processAlert(alert, owners) {
 
   const result = await fcm.sendEachForMulticast({
     tokens,
-    notification: { title: alert.title, body: alert.body },
+    // Data-only message: forces firebase-messaging-sw.js's onBackgroundMessage
+    // handler to fire on every platform (Chrome auto-handles top-level
+    // `notification:` fields, but iOS PWA silently drops them — keeping the
+    // payload data-only is the portable path).
     data: {
+      title: alert.title,
+      body: alert.body,
       tag: alert.key,
       type: String(alert.meta?.type || ''),
       stockId: String(alert.meta?.stockId || ''),
       virginId: String(alert.meta?.virginId || '')
     },
     webpush: {
-      notification: {
-        icon: 'icon-192.png',
-        badge: 'icon-192.png',
-        tag: alert.key,
-        requireInteraction: true
-      },
+      headers: { Urgency: 'high' },
       fcmOptions: { link: '/' }
     }
   });
