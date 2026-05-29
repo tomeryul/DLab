@@ -1,0 +1,127 @@
+rules_version = '2';
+
+// FlyLab Pro — Firestore security rules
+//
+// Mirror of the rules currently deployed in the Firebase Console, with
+// one targeted fix: a regular user can no longer promote themselves to
+// admin / super_admin by calling updateDoc('users/<own-uid>', {role:...})
+// from DevTools. The role field is now pinned on self-update, and a new
+// user doc can only be created with role 'regular'. Role changes still
+// flow through the super_admin branch (the Users tab UI).
+//
+// To deploy:
+//   firebase deploy --only firestore:rules
+// (run from Google Cloud Shell — no local install needed)
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    function hasProfile() {
+      return isLoggedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function isSuperAdmin() {
+      return hasProfile() && getRole() == 'super_admin';
+    }
+
+    function isAdmin() {
+      return hasProfile() && getRole() == 'admin';
+    }
+
+    function isRegular() {
+      return hasProfile() && getRole() == 'regular';
+    }
+
+    match /users/{userId} {
+      // Self-access: split read / create / update so that the role field
+      // is not freely settable on the user's own doc.
+      allow read: if isLoggedIn() && request.auth.uid == userId;
+      allow create: if isLoggedIn() && request.auth.uid == userId
+                    && request.resource.data.role == 'regular';
+      allow update: if isLoggedIn() && request.auth.uid == userId
+                    && request.resource.data.role == resource.data.role;
+
+      // super_admin מנהל את כולם
+      allow read, write, delete: if isSuperAdmin();
+      // admin רואה ועורך את כולם
+      allow read, create, update: if isAdmin();
+    }
+
+    // calTasks
+    match /calTasks/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // config
+    match /config/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // logs
+    match /logs/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // protocols
+    match /protocols/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // stocks
+    match /stocks/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // crosses
+    match /crosses/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // virgins
+    match /virgins/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // phenotypes
+    match /phenotypes/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // notes
+    match /notes/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    // notifLedger — server-only (Admin SDK from the cron bypasses rules).
+    // Clients should not be able to write or read entries.
+    match /notifLedger/{docId} {
+      allow read: if isSuperAdmin();
+    }
+  }
+}
