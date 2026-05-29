@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, query, orderBy, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import { getMessaging, getToken as fcmGetToken, onMessage as fcmOnMessage, isSupported as fcmIsSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+import { getMessaging, getToken as fcmGetToken, deleteToken as fcmDeleteToken, onMessage as fcmOnMessage, isSupported as fcmIsSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
 
 // =============================================================
 // Web Push (FCM) — paste your VAPID public key here.
@@ -343,6 +343,11 @@ function notifEnabled() {
 window.toggleNotifications = async function(checked) {
   if (!checked) {
     localStorage.setItem(NOTIF_ENABLED_KEY, '0');
+    // Tear down the FCM subscription so toggling back on re-binds to a fresh APNs/Push
+    // connection. Without this, the SDK hands back a cached token whose underlying
+    // subscription may have silently died — the cron then gets "ok" from FCM but the
+    // device never sees the push.
+    await unregisterFCMToken().catch(e => console.warn('FCM unregister failed:', e));
     toast('Notifications off');
     return;
   }
@@ -421,6 +426,20 @@ async function registerFCMToken() {
     console.warn('FCM getToken failed:', e);
     return null;
   }
+}
+
+async function unregisterFCMToken() {
+  const cached = localStorage.getItem('flyLabFCMToken');
+  if (currentUser && cached) {
+    await updateDoc(doc(db, 'users', currentUser.uid), { fcmTokens: arrayRemove(cached) })
+      .catch(e => console.warn('FCM token removal from Firestore failed:', e.message));
+  }
+  localStorage.removeItem('flyLabFCMToken');
+  const messaging = await getMessagingIfPossible();
+  if (messaging) {
+    await fcmDeleteToken(messaging).catch(e => console.warn('FCM deleteToken failed:', e.message));
+  }
+  console.log('FCM token unregistered.');
 }
 
 // Foreground push receiver — show an in-app toast so the user sees the alert
