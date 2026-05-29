@@ -1,6 +1,17 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc, query, orderBy, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getMessaging, getToken as fcmGetToken, onMessage as fcmOnMessage, isSupported as fcmIsSupported } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-messaging.js";
+
+// =============================================================
+// Web Push (FCM) — paste your VAPID public key here.
+// Firebase Console → Project Settings → Cloud Messaging →
+// Web Push certificates → "Generate key pair" → copy the public
+// key into this string. Until then, FCM is skipped and the app
+// falls back to the existing foreground-only notifications.
+// =============================================================
+const VAPID_KEY = "PASTE_YOUR_VAPID_PUBLIC_KEY_HERE";
+const isVAPIDConfigured = () => VAPID_KEY && VAPID_KEY !== "PASTE_YOUR_VAPID_PUBLIC_KEY_HERE";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAsVBai3D8ojfynejbtiGWsxvCe7bqjQ9c",
@@ -362,8 +373,68 @@ window.toggleNotifications = async function(checked) {
   }
   localStorage.setItem(NOTIF_ENABLED_KEY, '1');
   toast('Notifications on', { tone: 'success' });
+  // Register this device with FCM so the cron backend can push when the app is closed.
+  // Best-effort: if VAPID isn't configured or registration fails, foreground alerts still work.
+  try { await registerFCMToken(); } catch (e) { console.warn('FCM register failed:', e); }
   checkAlerts();
 };
+
+// =============================================================
+// FCM token lifecycle — register on opt-in, store in users/{uid}.fcmTokens
+// =============================================================
+let _fcmMessaging = null;
+async function getMessagingIfPossible() {
+  if (_fcmMessaging) return _fcmMessaging;
+  if (!isVAPIDConfigured()) { console.warn('FCM: VAPID_KEY is the placeholder — background push disabled.'); return null; }
+  if (typeof fcmIsSupported !== 'function') return null;
+  const ok = await fcmIsSupported().catch(() => false);
+  if (!ok) { console.warn('FCM not supported in this browser context.'); return null; }
+  _fcmMessaging = getMessaging(fbApp);
+  return _fcmMessaging;
+}
+
+async function registerFCMToken() {
+  if (!currentUser) return null;
+  if (!notifEnabled()) return null;
+  const messaging = await getMessagingIfPossible();
+  if (!messaging) return null;
+  // Use the FCM SW we registered separately as the receiver
+  const swReg = await navigator.serviceWorker.getRegistration('firebase-messaging-sw.js')
+    .catch(() => null);
+  try {
+    const token = await fcmGetToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: swReg || undefined
+    });
+    if (!token) { console.warn('FCM: empty token returned'); return null; }
+    // Add to the user doc if not already there
+    await updateDoc(doc(db, 'users', currentUser.uid), { fcmTokens: arrayUnion(token) })
+      .catch(async (e) => {
+        // If the doc lacks the field, arrayUnion still works on most builds;
+        // if it errored for any other reason, log it.
+        console.warn('FCM token write failed:', e.message);
+      });
+    localStorage.setItem('flyLabFCMToken', token);
+    console.log('FCM token registered.');
+    return token;
+  } catch (e) {
+    console.warn('FCM getToken failed:', e);
+    return null;
+  }
+}
+
+// Foreground push receiver — show an in-app toast so the user sees the alert
+// without the OS chrome (since the OS swallows it when the tab is focused).
+async function setupFCMForeground() {
+  const messaging = await getMessagingIfPossible();
+  if (!messaging) return;
+  fcmOnMessage(messaging, (payload) => {
+    const title = payload.notification?.title || payload.data?.title || 'FlyLab alert';
+    const body  = payload.notification?.body  || payload.data?.body  || '';
+    toast(`${title} — ${body}`, { tone: 'success', ttl: 6000 });
+  });
+}
+
 // Notification cooldown so reopening the app doesn't fire the same alert
 // multiple times in a row. Keyed in localStorage so it survives reloads.
 const NOTIF_HISTORY_KEY = 'flyLabNotifHistory';
@@ -763,6 +834,10 @@ function enterApp() {
   // Hydrate the notifications toggle from saved state
   const notifToggle = document.getElementById('notifToggle');
   if (notifToggle) notifToggle.checked = notifEnabled();
+  // FCM — start the foreground listener, and re-register the device token
+  // so a rotated token gets refreshed in Firestore on the next open.
+  setupFCMForeground().catch(e => console.warn('FCM foreground setup failed:', e));
+  if (notifEnabled()) registerFCMToken().catch(e => console.warn('FCM re-register failed:', e));
   logActivity('login', 'system', `${currentProfile.name} logged in`);
 }
 

@@ -343,7 +343,9 @@
         <span class="toggle-text">Send alerts to this device</span>
       </label>
       <p class="section-sub" style="margin-top:1rem; font-size:11.5px; line-height:1.55;">
-        <strong style="color:var(--text-2);">Heads up:</strong> alerts fire when FlyLab is open, when you reopen it after being away (catch-up on the last 12 hours), and — on browsers that support it (Chrome desktop / Android in installed PWA mode) — at the exact deadline even when the app is closed. <strong>iOS Safari has no offline background support</strong>; for true background pushes on iPhone we'd need to wire Firebase Cloud Messaging (paid plan). Ask me if you want that next.
+        <strong style="color:var(--text-2);">Heads up:</strong> alerts fire when FlyLab is open and when you reopen it after being away (catch-up on the last 12 hours).
+        For true background pushes on iPhone (PWA installed + iOS 16.4+) the repo also ships a free GitHub Actions cron that calls FCM Web Push every 5 minutes — once you paste a VAPID key and add a service-account secret, alerts will buzz even when FlyLab is fully closed.
+        See <code>README-PUSH-SETUP.md</code> for the 10-minute setup.
       </p>
     </div>
     <div class="card">

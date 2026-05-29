@@ -1,0 +1,10 @@
+{
+  "name": "flylab-check-alerts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Periodic Firebase-admin job that scans FlyLab Pro stocks + virgins and sends FCM Web Push notifications for overdue flips and closing virgin windows.",
+  "dependencies": {
+    "firebase-admin": "^12.7.0"
+  }
+}
