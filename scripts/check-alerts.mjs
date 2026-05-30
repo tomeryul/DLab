@@ -15,6 +15,8 @@ const VIRGIN_COOLDOWN_HRS = 1;
 const VIRGIN_LEAD_MIN = 30;        // notify this long before the window closes
 const SCHEDULE_WINDOW_MIN = 15;    // grace window after a scheduled slot
 const LOCAL_TZ = 'Asia/Jerusalem'; // schedule times are stored as local HH:MM
+const FLIP_DAY_START_MIN = 7 * 60;  // 07:00 — earliest local time to push flip reminders
+const FLIP_DAY_END_MIN = 17 * 60;   // 17:00 — latest local time to push flip reminders
 
 function readServiceAccount() {
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -55,19 +57,25 @@ function nowInLocalTZ(now = new Date()) {
 function computeAlerts(stocks, virgins, settings) {
   const out = [];
   const critDays = settings.flipCritDays || 14;
+  const local = nowInLocalTZ();
+  const flipInWakingHours = local.minutes >= FLIP_DAY_START_MIN && local.minutes < FLIP_DAY_END_MIN;
 
-  // 1. Flip overdue — stock past flipCritDays since last flip
-  for (const s of stocks) {
-    if (!s.flipDate) continue;
-    const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000);
-    if (days > critDays) {
-      out.push({
-        key: `flip-${s._id}`,
-        title: '🔥 Flip overdue',
-        body: `${s.id || 'Stock'} is ${days} days since last flip.`,
-        cooldownHours: FLIP_COOLDOWN_HRS,
-        meta: { type: 'flip', stockId: s._id }
-      });
+  // 1. Flip overdue — stock past flipCritDays since last flip.
+  // Only push during local waking hours (07:00–17:00); overnight overdue stocks
+  // are picked up at the next 07:00 tick instead of buzzing during sleep.
+  if (flipInWakingHours) {
+    for (const s of stocks) {
+      if (!s.flipDate) continue;
+      const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000);
+      if (days > critDays) {
+        out.push({
+          key: `flip-${s._id}`,
+          title: '🔥 Flip overdue',
+          body: `${s.id || 'Stock'} is ${days} days since last flip.`,
+          cooldownHours: FLIP_COOLDOWN_HRS,
+          meta: { type: 'flip', stockId: s._id }
+        });
+      }
     }
   }
 
@@ -92,7 +100,6 @@ function computeAlerts(stocks, virgins, settings) {
 
   // 3. Daily schedule — fire once per day per slot when local clock catches up
   const schedule = Array.isArray(settings.schedule) ? settings.schedule : [];
-  const local = nowInLocalTZ();
   schedule.forEach((s, idx) => {
     if (!s || !s.time || !s.desc) return;
     const m = String(s.time).match(/^(\d{1,2}):(\d{2})$/);
