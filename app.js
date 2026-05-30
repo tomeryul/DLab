@@ -104,6 +104,17 @@ Object.defineProperty(data, 'stocks', {
   get() { return data._stockData[window.activeStockSource] || []; },
   set(v) { data._stockData[window.activeStockSource] = v; }
 });
+// Explicit accessors for the non-active sources too, so any code path that
+// looks up data[coll] (deleteWithUndo, bulk-delete preview snapshots, exports)
+// sees the right rows when coll is 'stocks2' or 'weekly' — not just when it's
+// the active 'stocks' alias.
+['stocks2', 'weekly'].forEach((src) => {
+  Object.defineProperty(data, src, {
+    configurable: true, enumerable: true,
+    get() { return data._stockData[src] || []; },
+    set(v) { data._stockData[src] = v; }
+  });
+});
 window.__flyLabData = data;
 let phenoCategories = [...defaultSettings.defaultPhenos];
 let currentUser = null;
