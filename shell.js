@@ -37,19 +37,32 @@
     });
   }
 
+  // Read the Lucide icon name from a tab-btn — first the .nav-ico's <i data-lucide>
+  // (before Lucide swaps it), then the rendered <svg class="lucide-NAME">.
+  function tabIconName(btn) {
+    var marker = btn.querySelector('.nav-ico [data-lucide]');
+    if (marker) return marker.getAttribute('data-lucide');
+    var svg = btn.querySelector('.nav-ico svg.lucide');
+    if (svg) {
+      var cls = svg.getAttribute('class') || '';
+      var m = cls.match(/lucide-([a-z0-9-]+)/i);
+      if (m) return m[1];
+    }
+    return 'circle';
+  }
   function buildItems() {
     cmdkItems = [];
     // 1. Tabs first
     document.querySelectorAll('.sidebar .tab-btn').forEach(function (btn) {
       if (btn.offsetParent === null) return; // skip hidden (admin) tabs
-      var ico = btn.querySelector('.nav-ico');
       cmdkItems.push({
         kind: 'tab',
         tab: btn.dataset.tab,
-        label: TITLES[btn.dataset.tab] || btn.dataset.tab,
+        source: btn.dataset.source || null,
+        label: btn.querySelector('.nav-label') ? btn.querySelector('.nav-label').textContent : (TITLES[btn.dataset.tab] || btn.dataset.tab),
         sub: 'Tab',
-        icon: ico ? ico.textContent : '•',
-        search: (TITLES[btn.dataset.tab] || btn.dataset.tab).toLowerCase()
+        icon: tabIconName(btn),
+        search: ((btn.querySelector('.nav-label') ? btn.querySelector('.nav-label').textContent : TITLES[btn.dataset.tab] || btn.dataset.tab) + '').toLowerCase()
       });
     });
     // 2. Records from in-memory data (populated by app.js)
@@ -57,16 +70,16 @@
     if (!data) return;
     (data.stocks || []).forEach(function (s) {
       var name = s.name ? ' — ' + s.name : '';
-      cmdkItems.push({ kind: 'record', tab: 'stocks', recordId: s._id, label: s.id + name, sub: 'Stock · ' + (s.type || 'untyped'), icon: '🧬', search: (s.id + ' ' + (s.name || '') + ' ' + (s.genotype || '') + ' ' + (s.type || '')).toLowerCase() });
+      cmdkItems.push({ kind: 'record', tab: 'stocks', recordId: s._id, label: s.id + name, sub: 'Stock · ' + (s.type || 'untyped'), icon: 'dna', search: (s.id + ' ' + (s.name || '') + ' ' + (s.genotype || '') + ' ' + (s.type || '')).toLowerCase() });
     });
     (data.crosses || []).forEach(function (c) {
-      cmdkItems.push({ kind: 'record', tab: 'crosses', recordId: c._id, label: c.id + ' (' + (c.gen || '?') + ')', sub: 'Cross · ' + (c.female || '?') + ' × ' + (c.male || '?'), icon: '⚗️', search: (c.id + ' ' + (c.gen || '') + ' ' + (c.female || '') + ' ' + (c.male || '')).toLowerCase() });
+      cmdkItems.push({ kind: 'record', tab: 'crosses', recordId: c._id, label: c.id + ' (' + (c.gen || '?') + ')', sub: 'Cross · ' + (c.female || '?') + ' × ' + (c.male || '?'), icon: 'flask-conical', search: (c.id + ' ' + (c.gen || '') + ' ' + (c.female || '') + ' ' + (c.male || '')).toLowerCase() });
     });
     (data.notes || []).forEach(function (n) {
-      cmdkItems.push({ kind: 'record', tab: 'notebook', recordId: n._id, label: n.title || '(untitled)', sub: 'Note · ' + (n.date || ''), icon: '📓', search: ((n.title || '') + ' ' + (n.tags || '') + ' ' + (n.hypothesis || '')).toLowerCase() });
+      cmdkItems.push({ kind: 'record', tab: 'notebook', recordId: n._id, label: n.title || '(untitled)', sub: 'Note · ' + (n.date || ''), icon: 'notebook-pen', search: ((n.title || '') + ' ' + (n.tags || '') + ' ' + (n.hypothesis || '')).toLowerCase() });
     });
     (data.protocols || []).forEach(function (p) {
-      cmdkItems.push({ kind: 'record', tab: 'protocols', recordId: p._id, label: p.name, sub: 'Protocol · ' + (p.category || 'uncategorized'), icon: '📋', search: ((p.name || '') + ' ' + (p.category || '') + ' ' + (p.materials || '')).toLowerCase() });
+      cmdkItems.push({ kind: 'record', tab: 'protocols', recordId: p._id, label: p.name, sub: 'Protocol · ' + (p.category || 'uncategorized'), icon: 'clipboard-list', search: ((p.name || '') + ' ' + (p.category || '') + ' ' + (p.materials || '')).toLowerCase() });
     });
   }
 
@@ -84,7 +97,8 @@
     if (cmdkActive >= shown.length) cmdkActive = 0;
     list.innerHTML = shown.map(function (it, i) {
       var sub = it.sub ? '<span class="cmdk-sub">' + escapeHtml(it.sub) + '</span>' : '';
-      return '<div class="cmdk-item' + (i === cmdkActive ? ' active' : '') + '" data-idx="' + i + '"><span class="nav-ico">' + it.icon + '</span><span class="cmdk-label">' + escapeHtml(it.label) + sub + '</span></div>';
+      var iconHTML = it.icon ? '<i data-lucide="' + escapeHtml(it.icon) + '"></i>' : '';
+      return '<div class="cmdk-item' + (i === cmdkActive ? ' active' : '') + '" data-idx="' + i + '"><span class="nav-ico">' + iconHTML + '</span><span class="cmdk-label">' + escapeHtml(it.label) + sub + '</span></div>';
     }).join('');
     Array.prototype.forEach.call(list.querySelectorAll('.cmdk-item'), function (row) {
       row.addEventListener('click', function () { goItem(shown[+row.getAttribute('data-idx')]); });

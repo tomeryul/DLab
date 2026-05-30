@@ -294,7 +294,7 @@ function computeNextAction() {
   }).filter(Boolean).sort((a, b) => b.days - a.days)[0];
   if (worstFlip && worstFlip.days > critDays) {
     return {
-      ico: '🔥',
+      ico: '<i data-lucide="flame"></i>',
       kicker: 'Flip overdue',
       title: `${worstFlip.stock.id} is ${worstFlip.days} days since last flip — flip now`,
       cta: 'Go to Stocks',
@@ -323,7 +323,7 @@ function computeNextAction() {
   // 3. warn-level flips (between warn and crit)
   if (worstFlip) {
     return {
-      ico: '⚠️',
+      ico: '<i data-lucide="alert-triangle"></i>',
       kicker: 'Flip due soon',
       title: `${worstFlip.stock.id} hits ${critDays}-day limit soon (${worstFlip.days}d since last flip)`,
       cta: 'Review',
@@ -339,7 +339,7 @@ function computeNextAction() {
     .sort((a, b) => a.h - b.h)[0];
   if (upcoming) {
     return {
-      ico: '🗓',
+      ico: '<i data-lucide="calendar-clock"></i>',
       kicker: `Upcoming · ${upcoming.s.time}`,
       title: upcoming.s.desc,
       cta: '',
@@ -349,7 +349,7 @@ function computeNextAction() {
   }
 
   // 5. calm fallback
-  return { ico: '☕', kicker: "What's next", title: 'Lab is calm — no urgent actions', cta: '', action: null, tone: 'is-calm' };
+  return { ico: '<i data-lucide="coffee"></i>', kicker: "What's next", title: 'Lab is calm — no urgent actions', cta: '', action: null, tone: 'is-calm' };
 }
 function renderNextAction() {
   const cont = document.getElementById('nextAction');
@@ -933,7 +933,7 @@ function paintSkeletons() {
 
 function roleLabel(r) {
   if (r === 'super_admin') return '⭐ Super Admin';
-  if (r === 'admin') return '🛡️ Admin';
+  if (r === 'admin') return '<i data-lucide="shield-check"></i> Admin';
   return 'Regular';
 }
 function canEdit() { return currentProfile && (currentProfile.role === 'admin' || currentProfile.role === 'super_admin'); }
@@ -1140,7 +1140,7 @@ function renderRecurTaskList() {
         <input type="color" value="${t.color}" onchange="updateRecurColor(${i}, this.value)" style="width:40px; height:34px; padding:2px; cursor:pointer;">
         <input type="text" value="${t.name.replace(/"/g,'&quot;')}" onchange="updateRecurTask(${i}, this.value)">
       </div>
-      <button class="action-btn delete" onclick="removeRecurTask(${i})">🗑</button>
+      <button class="action-btn delete" onclick="removeRecurTask(${i})"><i data-lucide="trash-2"></i></button>
     </div>`).join('')}</div>`;
 }
 window.updateRecurTask = async function(i, value) { normalizeRecurring(); data.settings.recurringTasks[i].name = value; await saveSettingsToCloud(); };
@@ -1263,7 +1263,7 @@ function renderCalendarDay() {
   const cont = document.getElementById('calDayTasks');
   if (!cont) return;
   const tasks = (data.calTasks || []).filter(t => t.date === calSelectedDate).sort((a,b) => (a.created||0)-(b.created||0));
-  if (tasks.length === 0) { cont.innerHTML = '<div class="empty-state"><div class="icon">📅</div><p>No tasks for this day. Add one above.</p></div>'; return; }
+  if (tasks.length === 0) { cont.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="calendar"></i></div><p>No tasks for this day. Add one above.</p></div>'; return; }
   const done = tasks.filter(t => t.done).length;
   cont.innerHTML = `<p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">${done}/${tasks.length} completed</p>` + tasks.map(t => {
     const c = t.color || colorForTask(t.task);
@@ -1272,7 +1272,7 @@ function renderCalendarDay() {
       <input type="checkbox" ${t.done ? 'checked' : ''} onchange="toggleCalTask('${t._id}')" style="width:20px; height:20px; cursor:pointer; flex:none;">
       <span class="task-desc" style="${t.done ? 'text-decoration:line-through;' : ''}">${t.task}</span>
       ${t.createdBy ? `<span style="font-size:11px; color:var(--text-3);">${t.createdBy}</span>` : ''}
-      <button class="action-btn delete" onclick="deleteCalTask('${t._id}')">🗑</button>
+      <button class="action-btn delete" onclick="deleteCalTask('${t._id}')"><i data-lucide="trash-2"></i></button>
     </li>`; }).join('');
 }
 
@@ -1297,7 +1297,7 @@ function renderScheduleSettings() {
         <span class="toggle-track"></span>
         <span class="toggle-text">Critical</span>
       </label>
-    </div><button class="action-btn delete" onclick="removeSchedule(${i})">🗑</button></div>`).join('');
+    </div><button class="action-btn delete" onclick="removeSchedule(${i})"><i data-lucide="trash-2"></i></button></div>`).join('');
 }
 
 window.updateTemp = function(i, key, value) { data.settings.temps[i][key] = value; populateSelects(); };
@@ -1310,7 +1310,7 @@ function renderTempSettings() {
     <div class="setting-row"><div style="display:flex; gap:8px; align-items:center; flex:1;">
       <input type="number" step="0.1" value="${t.value}" onchange="updateTemp(${i}, 'value', this.value)" style="width:80px;"><span style="color:var(--text-muted);">°C</span>
       <input type="text" value="${t.label}" onchange="updateTemp(${i}, 'label', this.value)">
-    </div><button class="action-btn delete" onclick="removeTemp(${i})">🗑</button></div>`).join('');
+    </div><button class="action-btn delete" onclick="removeTemp(${i})"><i data-lucide="trash-2"></i></button></div>`).join('');
 }
 
 window.updateStockType = function(i, value) { data.settings.stockTypes[i] = value; populateSelects(); };
@@ -1323,7 +1323,7 @@ window.removeStockType = async function(i) {
 function renderStockTypes() {
   const cont = document.getElementById('stockTypesList');
   if (!cont) return;
-  cont.innerHTML = `<div class="setting-group">${data.settings.stockTypes.map((t, i) => `<div class="setting-row"><input type="text" value="${t}" onchange="updateStockType(${i}, this.value)"><button class="action-btn delete" onclick="removeStockType(${i})">🗑</button></div>`).join('')}</div>`;
+  cont.innerHTML = `<div class="setting-group">${data.settings.stockTypes.map((t, i) => `<div class="setting-row"><input type="text" value="${t}" onchange="updateStockType(${i}, this.value)"><button class="action-btn delete" onclick="removeStockType(${i})"><i data-lucide="trash-2"></i></button></div>`).join('')}</div>`;
 }
 
 window.updateDefaultPheno = function(i, value) { data.settings.defaultPhenos[i] = value; };
@@ -1332,7 +1332,7 @@ window.removeDefaultPheno = function(i) { data.settings.defaultPhenos.splice(i, 
 function renderDefaultPhenos() {
   const cont = document.getElementById('defaultPhenosList');
   if (!cont) return;
-  cont.innerHTML = `<div class="setting-group">${data.settings.defaultPhenos.map((p, i) => `<div class="setting-row"><input type="text" value="${p}" onchange="updateDefaultPheno(${i}, this.value)"><button class="action-btn delete" onclick="removeDefaultPheno(${i})">🗑</button></div>`).join('')}</div>`;
+  cont.innerHTML = `<div class="setting-group">${data.settings.defaultPhenos.map((p, i) => `<div class="setting-row"><input type="text" value="${p}" onchange="updateDefaultPheno(${i}, this.value)"><button class="action-btn delete" onclick="removeDefaultPheno(${i})"><i data-lucide="trash-2"></i></button></div>`).join('')}</div>`;
 }
 
 window.saveSettings = async function() {
@@ -1358,7 +1358,7 @@ window.renderStockFilters = function() {
   const cont = document.getElementById('stockFilters');
   if (!cont) return;
   const types = ['all', ...data.settings.stockTypes, 'flip-due'];
-  cont.innerHTML = types.map(t => `<div class="filter-chip ${t === activeStockFilter ? 'active' : ''}" onclick="filterStocks('${t}', this)" ${t === 'flip-due' ? 'style="color:var(--warn);"' : ''}>${t === 'all' ? 'All' : t === 'flip-due' ? '⚠ Flip due' : t}</div>`).join('');
+  cont.innerHTML = types.map(t => `<div class="filter-chip ${t === activeStockFilter ? 'active' : ''}" onclick="filterStocks('${t}', this)" ${t === 'flip-due' ? 'style="color:var(--warn);"' : ''}>${t === 'all' ? 'All' : t === 'flip-due' ? '<i data-lucide="alert-triangle"></i> Flip due' : t}</div>`).join('');
 };
 function renderStockFilters() { window.renderStockFilters(); }
 window.filterStocks = function(filter, el) { activeStockFilter = filter; document.querySelectorAll('#stocks .filter-chip').forEach(c => c.classList.remove('active')); el.classList.add('active'); renderStocks(); };
@@ -1502,14 +1502,14 @@ function renderStocks() {
     const days = s.flipDate ? Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000) : null;
     let flipStatus = '—', status = '<span class="badge b-active">OK</span>';
     if (days !== null) {
-      if (days > critDays) { flipStatus = `<span style="color:var(--danger);">⚠ ${days}d</span>`; status = '<span class="badge b-danger">FLIP NOW</span>'; }
+      if (days > critDays) { flipStatus = `<span style="color:var(--danger);"><i data-lucide="alert-triangle"></i> ${days}d</span>`; status = '<span class="badge b-danger">FLIP NOW</span>'; }
       else if (days > warnDays) { flipStatus = `<span style="color:var(--warn);">${days}d</span>`; status = '<span class="badge b-warn">Soon</span>'; }
       else flipStatus = `<span style="color:var(--ok);">${days}d</span>`;
     }
     return `<tr data-record-id="${s._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="stocks" data-id="${s._id}" onchange="bulkToggleRow('stocks', '${s._id}', this.checked)" ${bulkSel.stocks.has(s._id) ? 'checked' : ''}></td><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:var(--text-muted);">' + s.name + '</span>' : ''}</td>
       <td style="font-family:monospace; font-size:12px;">${s.genotype || '—'}</td><td>${s.type || '—'}</td><td>${s.source || '—'}</td>
       <td style="font-family:monospace; font-size:12px;">${s.location || '—'}</td><td>${flipStatus}</td><td>${status}</td>
-      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Mark flipped today" onclick="markFlipped('${s._id}')">↻</button><button class="action-btn edit-btn" title="Edit" onclick="editStock('${s._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deleteStock('${s._id}')">🗑</button></td></tr>`;
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Mark flipped today" onclick="markFlipped('${s._id}')">↻</button><button class="action-btn edit-btn" title="Edit" onclick="editStock('${s._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="deleteStock('${s._id}')"><i data-lucide="trash-2"></i></button></td></tr>`;
   }).join('');
 }
 
@@ -1593,7 +1593,7 @@ function renderCrosses() {
       <td style="font-family:monospace; font-size:11px;">${c.female || '?'} <span style="color:var(--text-muted);">×</span> ${c.male || '?'}</td>
       <td>${c.date ? new Date(c.date).toLocaleDateString() : '—'}</td><td><strong>Day ${day}</strong></td>
       <td>${c.temp || 25}°C</td><td><span class="badge b-${c.status === 'active' ? 'active' : 'done'}">${c.status}</span></td>
-      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Toggle status" onclick="toggleCrossStatus('${c._id}')">✓</button><button class="action-btn edit-btn" title="Edit" onclick="editCross('${c._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deleteCross('${c._id}')">🗑</button></td></tr>`;
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Toggle status" onclick="toggleCrossStatus('${c._id}')">✓</button><button class="action-btn edit-btn" title="Edit" onclick="editCross('${c._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="deleteCross('${c._id}')"><i data-lucide="trash-2"></i></button></td></tr>`;
   }).join('');
 }
 
@@ -1662,7 +1662,7 @@ function renderVirgins() {
       <td><span class="badge ${v.session === 'AM' ? 'b-f1' : 'b-f2'}">${v.session}</span></td><td>${v.source || '—'}</td>
       <td><span class="badge b-female">${v.females}</span></td><td><span class="badge b-male">${v.males}</span></td>
       <td>${v.container || '—'}</td><td>${v.temp}°C</td>
-      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editVirgin('${v._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deleteVirgin('${v._id}')">🗑</button></td></tr>`).join('');
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editVirgin('${v._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="deleteVirgin('${v._id}')"><i data-lucide="trash-2"></i></button></td></tr>`).join('');
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
   const td = document.getElementById('virginsTodayDetail'), tw = document.getElementById('virginsWeek'), ta = document.getElementById('virginsAll');
@@ -1751,7 +1751,7 @@ function renderPhenotypes() {
     return `<tr data-record-id="${p._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="phenotypes" data-id="${p._id}" onchange="bulkToggleRow('phenotypes', '${p._id}', this.checked)" ${bulkSel.phenotypes.has(p._id) ? 'checked' : ''}></td><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${p.vial}</strong></td>
       <td><span class="badge b-${p.gen.toLowerCase()}">${p.gen}</span></td><td style="font-size:11px;">${summary}</td>
       <td><strong>${p.total}</strong></td><td style="font-size:11px; color:var(--text-muted);">${(p.notes || '').substring(0, 30)}</td>
-      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editPheno('${p._id}')">✏️</button><button class="action-btn delete" title="Delete" onclick="deletePheno('${p._id}')">🗑</button></td></tr>`;
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editPheno('${p._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="deletePheno('${p._id}')"><i data-lucide="trash-2"></i></button></td></tr>`;
   }).join('');
 }
 window.quickChiSquare = function() {
@@ -1765,7 +1765,7 @@ window.quickChiSquare = function() {
   const df = nonZero.length - 1;
   const critical = [3.84, 5.99, 7.81, 9.49, 11.07][df-1] || 12;
   const sig = chi > critical;
-  document.getElementById('chiResult').innerHTML = `<div class="chi-result"><h4 style="color:var(--text-bright); margin-bottom:8px;">📐 Chi-square (equal ratio)</h4>
+  document.getElementById('chiResult').innerHTML = `<div class="chi-result"><h4 style="color:var(--text-bright); margin-bottom:8px;"><i data-lucide="sigma"></i> Chi-square (equal ratio)</h4>
     <div class="chi-value">χ² = ${chi.toFixed(3)}</div><div class="chi-detail">df = ${df} | critical (α=0.05) = ${critical} | n = ${total}</div>
     <div class="significance ${sig ? 'sig-fail' : 'sig-pass'}">${sig ? '✗ Significant deviation' : '✓ No significant deviation'}</div></div>`;
 };
@@ -1798,11 +1798,11 @@ window.editNote = function(id) {
     fields: [
       { key: 'date', label: 'Date', type: 'date' },
       { key: 'title', label: 'Title', required: true },
-      { key: 'hypothesis', label: '📝 Hypothesis', type: 'textarea' },
-      { key: 'methods', label: '🧪 Methods', type: 'textarea' },
-      { key: 'results', label: '👀 Results', type: 'textarea' },
-      { key: 'conclusion', label: '💭 Conclusions', type: 'textarea' },
-      { key: 'tags', label: '🏷️ Tags' }
+      { key: 'hypothesis', label: 'Hypothesis', type: 'textarea' },
+      { key: 'methods', label: 'Methods', type: 'textarea' },
+      { key: 'results', label: 'Results', type: 'textarea' },
+      { key: 'conclusion', label: 'Conclusions', type: 'textarea' },
+      { key: 'tags', label: 'Tags' }
     ],
     onSave: async (updates) => {
       await dbUpdate('notes', id, updates);
@@ -1817,14 +1817,14 @@ function renderNotes() {
   const search = document.getElementById('noteSearch')?.value.toLowerCase() || '';
   const sorted = [...data.notes].sort((a,b) => (b.created||0) - (a.created||0));
   let filtered = sorted.filter(n => !search || `${n.title} ${n.hypothesis} ${n.methods} ${n.results} ${n.conclusion} ${n.tags}`.toLowerCase().includes(search));
-  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state"><div class="icon">📓</div><p>No entries</p></div>'; return; }
+  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="notebook-pen"></i></div><p>No entries</p></div>'; return; }
   list.innerHTML = filtered.map(n => `<div class="note-entry" data-record-id="${n._id}"><div class="note-header"><div class="note-title">${n.title}</div><div class="note-date">${new Date(n.date).toLocaleDateString()}${n.createdBy ? ' • ' + n.createdBy : ''}</div></div>
       ${n.hypothesis ? `<div class="note-section"><strong>Hypothesis</strong><div>${n.hypothesis}</div></div>` : ''}
       ${n.methods ? `<div class="note-section"><strong>Methods</strong><div>${n.methods}</div></div>` : ''}
       ${n.results ? `<div class="note-section"><strong>Results</strong><div>${n.results}</div></div>` : ''}
       ${n.conclusion ? `<div class="note-section"><strong>Conclusions</strong><div>${n.conclusion}</div></div>` : ''}
       ${n.tags ? `<div style="margin-top:8px;">${n.tags.split(',').map(t => `<span class="badge b-wt" style="margin-right:4px;">#${t.trim()}</span>`).join('')}</div>` : ''}
-      <div style="text-align:right; margin-top:8px;"><button class="action-btn edit-btn" onclick="editNote('${n._id}')">✏️ Edit</button> <button class="action-btn delete" onclick="deleteNote('${n._id}')">🗑 Delete</button></div></div>`).join('');
+      <div style="text-align:right; margin-top:8px;"><button class="action-btn edit-btn" onclick="editNote('${n._id}')"><i data-lucide="pencil"></i> Edit</button> <button class="action-btn delete" onclick="deleteNote('${n._id}')"><i data-lucide="trash-2"></i> Delete</button></div></div>`).join('');
 }
 
 window.handleProtocolFile = function(e) {
@@ -1849,7 +1849,7 @@ window.openProtocolModal = function(id) {
     document.getElementById('protocolMaterials').value = p.materials || '';
     document.getElementById('protocolSteps').value = p.steps || '';
     document.getElementById('protocolNotes').value = p.notes || '';
-    document.getElementById('protocolFileInfo').innerHTML = p.file ? `📎 Current: <strong>${p.file.name}</strong>` : '';
+    document.getElementById('protocolFileInfo').innerHTML = p.file ? `<i data-lucide="paperclip"></i> Current: <strong>${p.file.name}</strong>` : '';
   } else {
     ['protocolName','protocolCategory','protocolDuration','protocolMaterials','protocolSteps','protocolNotes'].forEach(idd => document.getElementById(idd).value = '');
     document.getElementById('protocolFileInfo').innerHTML = '';
@@ -1916,11 +1916,11 @@ function renderProtocols() {
     if (search && !`${p.name} ${p.category} ${p.materials} ${p.steps} ${p.notes}`.toLowerCase().includes(search)) return false;
     return true;
   });
-  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state"><div class="icon">📋</div><p>No protocols. Click "Load defaults" or add your own.</p></div>'; return; }
+  if (filtered.length === 0) { list.innerHTML = '<div class="empty-state"><div class="icon"><i data-lucide="clipboard-list"></i></div><p>No protocols. Click "Load defaults" or add your own.</p></div>'; return; }
   list.innerHTML = filtered.map(p => {
-    const fileIcon = p.file ? (p.file.name.endsWith('.pdf') ? '📄' : '📝') : '';
+    const fileIcon = p.file ? (p.file.name.endsWith('.pdf') ? '<i data-lucide="file-text"></i>' : '<i data-lucide="file"></i>') : '';
     return `<div class="protocol-card" data-record-id="${p._id}"><div class="protocol-header"><div><div class="protocol-title">${p.name}</div><div class="protocol-meta">${p.category} ${p.duration ? '• ' + p.duration : ''}</div></div>
-      <div><button class="action-btn edit-btn" onclick="openProtocolModal('${p._id}')">✏️</button><button class="action-btn delete" onclick="deleteProtocol('${p._id}')">🗑</button></div></div>
+      <div><button class="action-btn edit-btn" onclick="openProtocolModal('${p._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" onclick="deleteProtocol('${p._id}')"><i data-lucide="trash-2"></i></button></div></div>
       ${p.materials ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Materials</strong><div class="protocol-body">${p.materials}</div></div>` : ''}
       ${p.steps ? `<div style="margin-bottom:8px;"><strong style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Steps</strong><div class="protocol-body">${p.steps}</div></div>` : ''}
       ${p.notes ? `<div><strong style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Notes</strong><div class="protocol-body">${p.notes}</div></div>` : ''}
@@ -2005,7 +2005,7 @@ window.changeUserRole = async function(uid, role) {
 };
 function roleBadge(r) {
   if (r === 'super_admin') return '<span class="badge b-admin">⭐ Super</span>';
-  if (r === 'admin') return '<span class="badge b-admin">🛡️ Admin</span>';
+  if (r === 'admin') return '<span class="badge b-admin"><i data-lucide="shield-check"></i> Admin</span>';
   return '<span class="badge b-user">Regular</span>';
 }
 function renderUsers() {
