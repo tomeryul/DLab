@@ -62,7 +62,48 @@ const defaultProtocols = [
   { name: 'Fly food prep (Bloomington)', category: 'maintenance', duration: '3hr for 600-800 vials', materials: 'Cornmeal, yeast, soy flour, agar, corn syrup, propionic acid', steps: '1. Per 1L: cornmeal 73g, yeast 17g, soy 10g, agar 5g\n2. Boil water, add dry ingredients\n3. Cook >90°C 10min\n4. Cool, add corn syrup 77mL\n5. Add propionic acid 5mL\n6. Dispense, cool, store 4°C', notes: 'Use within 2-3 weeks.' }
 ];
 
-let data = { stocks: [], crosses: [], virgins: [], phenotypes: [], notes: [], protocols: [], calTasks: [], logs: [], settings: JSON.parse(JSON.stringify(defaultSettings)) };
+// Three parallel "stocks" collections (Firestore docs live under stocks/, stocks2/,
+// weekly/). The UI under the Stocks tab is shared — only data.stocks's getter
+// flips to whichever source the sidebar button last selected. Existing code
+// keeps reading data.stocks unchanged.
+const STOCK_SOURCES = ['stocks', 'stocks2', 'weekly'];
+const STOCK_SOURCE_LABELS = { stocks: 'Stock 1', stocks2: 'Stock 2', weekly: 'Weekly' };
+window.activeStockSource = 'stocks';
+function stockModuleLabel(src) { return STOCK_SOURCE_LABELS[src || window.activeStockSource] || 'Stocks'; }
+window.setStockSource = function (src) {
+  if (!STOCK_SOURCES.includes(src) || src === window.activeStockSource) {
+    // Even when no-op, refresh visuals so the sidebar active rail follows the click.
+    paintActiveStockButton();
+    return;
+  }
+  window.activeStockSource = src;
+  // Clear any bulk selection from the previous source — different list, different rows.
+  if (typeof bulkSel === 'object' && bulkSel) STOCK_SOURCES.forEach(s => bulkSel[s] && bulkSel[s].clear && bulkSel[s].clear());
+  if (typeof renderBulkBar === 'function') renderBulkBar();
+  paintActiveStockButton();
+  if (typeof renderStocks === 'function') renderStocks();
+  if (typeof refreshDashboard === 'function') refreshDashboard();
+  const t = document.getElementById('pageTitle');
+  if (t && document.querySelector('#stocks.tab-content:not(.hidden)')) t.textContent = STOCK_SOURCE_LABELS[src];
+};
+function paintActiveStockButton() {
+  // The three Stock sidebar buttons all share data-tab="stocks", so shell.js's
+  // generic "any tab-btn with matching data-tab gets .active" logic would light
+  // up all three. We pin .active to the one whose data-source matches the
+  // currently active source, and strip it from the siblings.
+  document.querySelectorAll('.sidebar .tab-btn[data-tab="stocks"]').forEach(btn => {
+    const matches = btn.dataset.source === window.activeStockSource;
+    btn.classList.toggle('active', matches);
+  });
+}
+window.paintActiveStockButton = paintActiveStockButton;
+let data = { _stockData: { stocks: [], stocks2: [], weekly: [] }, crosses: [], virgins: [], phenotypes: [], notes: [], protocols: [], calTasks: [], logs: [], settings: JSON.parse(JSON.stringify(defaultSettings)) };
+Object.defineProperty(data, 'stocks', {
+  configurable: true,
+  enumerable: true,
+  get() { return data._stockData[window.activeStockSource] || []; },
+  set(v) { data._stockData[window.activeStockSource] = v; }
+});
 window.__flyLabData = data;
 let phenoCategories = [...defaultSettings.defaultPhenos];
 let currentUser = null;
@@ -538,11 +579,11 @@ function checkAlerts() {
 setInterval(() => { try { checkAlerts(); } catch (e) {} }, 60000);
 
 // Bulk selection — Map<collection, Set<id>>
-const bulkSel = { stocks: new Set(), crosses: new Set(), virgins: new Set(), phenotypes: new Set() };
+const bulkSel = { stocks: new Set(), stocks2: new Set(), weekly: new Set(), crosses: new Set(), virgins: new Set(), phenotypes: new Set() };
 function bulkActiveCollection() {
   const active = document.querySelector('.sidebar .tab-btn.active');
   const tab = active && active.dataset.tab;
-  if (tab === 'stocks') return 'stocks';
+  if (tab === 'stocks') return window.activeStockSource;
   if (tab === 'crosses') return 'crosses';
   if (tab === 'virgins') return 'virgins';
   if (tab === 'phenotype') return 'phenotypes';
@@ -903,7 +944,7 @@ function applyPermissions() {
   document.body.classList.toggle('no-edit', !canEdit());
 }
 
-const COLLECTIONS = ['stocks', 'crosses', 'virgins', 'phenotypes', 'notes', 'protocols', 'calTasks'];
+const COLLECTIONS = ['stocks', 'stocks2', 'weekly', 'crosses', 'virgins', 'phenotypes', 'notes', 'protocols', 'calTasks'];
 
 function subscribeAll() {
   setSyncStatus('syncing');
@@ -916,7 +957,11 @@ function subscribeAll() {
 
   COLLECTIONS.forEach(coll => {
     unsubscribers.push(onSnapshot(collection(db, coll), (snap) => {
-      data[coll] = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      const docs = snap.docs.map(d => ({ _id: d.id, ...d.data() }));
+      // Route stocks / stocks2 / weekly into _stockData so the data.stocks
+      // getter can flip between them based on the active sidebar button.
+      if (STOCK_SOURCES.includes(coll)) data._stockData[coll] = docs;
+      else data[coll] = docs;
       renderCollection(coll);
       refreshDashboard();
       setSyncStatus('synced');
@@ -935,8 +980,13 @@ function subscribeAll() {
 }
 
 function renderCollection(coll) {
-  if (coll === 'stocks') renderStocks();
-  else if (coll === 'crosses') renderCrosses();
+  // Snapshot of any stock source refreshes the stocks table iff it's the
+  // currently displayed one. The other two are quietly updated in _stockData.
+  if (STOCK_SOURCES.includes(coll)) {
+    if (coll === window.activeStockSource) renderStocks();
+    return;
+  }
+  if (coll === 'crosses') renderCrosses();
   else if (coll === 'virgins') renderVirgins();
   else if (coll === 'phenotypes') renderPhenotypes();
   else if (coll === 'notes') renderNotes();
@@ -1327,8 +1377,8 @@ window.addStock = async function() {
   };
   if (!stock.id) { flagField('stockId', 'Stock ID is required'); return; }
   try {
-    await dbAdd('stocks', stock);
-    logActivity('create', 'Stocks', `Added stock "${stock.id}" (${stock.genotype})`);
+    await dbAdd(window.activeStockSource, stock);
+    logActivity('create', stockModuleLabel(), `Added stock "${stock.id}" (${stock.genotype})`);
     captureDefaults('stock', ['stockType', 'stockSource', 'stockLocation', 'stockChrom']);
     ['stockId','stockGenotype','stockName','stockSource','stockLocation','stockNotes'].forEach(id => document.getElementById(id).value = '');
     toast('Stock added', { tone: 'success' });
@@ -1340,11 +1390,12 @@ window.addStock = async function() {
 };
 window.deleteStock = async function(id) {
   const s = data.stocks.find(x => x._id === id); if (!s) return;
-  await deleteWithUndo({ coll: 'stocks', id, label: `stock "${s.id}"`, module: 'Stocks' });
+  await deleteWithUndo({ coll: window.activeStockSource, id, label: `stock "${s.id}"`, module: stockModuleLabel() });
 };
 window.editStock = function(id) {
   if (!canEdit()) { toast('No permission to edit'); return; }
   const s = data.stocks.find(x => x._id === id); if (!s) return;
+  const src = window.activeStockSource;
   openEditModal({
     title: `Edit stock ${s.id}`,
     values: s,
@@ -1360,8 +1411,8 @@ window.editStock = function(id) {
       { key: 'notes', label: 'Notes', type: 'textarea' }
     ],
     onSave: async (updates) => {
-      await dbUpdate('stocks', id, updates);
-      logActivity('edit', 'Stocks', `Edited stock "${updates.id || s.id}"`);
+      await dbUpdate(src, id, updates);
+      logActivity('edit', stockModuleLabel(src), `Edited stock "${updates.id || s.id}"`);
       toast('Stock updated', { tone: 'success' });
     }
   });
@@ -1369,8 +1420,9 @@ window.editStock = function(id) {
 window.markFlipped = async function(id) {
   if (!canEdit()) { toast('No permission to edit'); return; }
   const s = data.stocks.find(x => x._id === id);
-  await dbUpdate('stocks', id, { flipDate: new Date().toISOString().split('T')[0] });
-  logActivity('edit', 'Stocks', `Flipped stock "${s.id}"`);
+  const src = window.activeStockSource;
+  await dbUpdate(src, id, { flipDate: new Date().toISOString().split('T')[0] });
+  logActivity('edit', stockModuleLabel(src), `Flipped stock "${s.id}"`);
   toast('Flipped today', { tone: 'success' });
 };
 
@@ -1407,12 +1459,13 @@ window.flipAllFiltered = async function() {
   let done = 0, failed = 0;
   // Run in small parallel chunks to avoid hammering Firestore.
   const CHUNK = 10;
+  const src = window.activeStockSource;
   for (let i = 0; i < list.length; i += CHUNK) {
     const batch = list.slice(i, i + CHUNK);
-    const results = await Promise.allSettled(batch.map(s => dbUpdate('stocks', s._id, { flipDate: today })));
+    const results = await Promise.allSettled(batch.map(s => dbUpdate(src, s._id, { flipDate: today })));
     results.forEach(r => { if (r.status === 'fulfilled') done++; else failed++; });
   }
-  logActivity('edit', 'Stocks', `Bulk-flipped ${done} stock${done === 1 ? '' : 's'} (filter: ${describeStockFilter()})`);
+  logActivity('edit', stockModuleLabel(src), `Bulk-flipped ${done} stock${done === 1 ? '' : 's'} (filter: ${describeStockFilter()})`);
   if (failed === 0) toast(`Flipped ${done} stock${done === 1 ? '' : 's'}`, { tone: 'success' });
   else toast(`Flipped ${done}, ${failed} failed`, { tone: 'error', ttl: 5000 });
   // Button gets re-enabled on the next render

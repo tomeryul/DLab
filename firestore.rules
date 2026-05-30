@@ -83,8 +83,21 @@ service cloud.firestore {
       allow read, create: if isRegular();
     }
 
-    // stocks
+    // stocks — three parallel collections; share the same access model as the
+    // original stocks collection so a sidebar source-switch behaves identically.
     match /stocks/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    match /stocks2/{docId} {
+      allow read, write, delete: if isSuperAdmin();
+      allow read, create, update, delete: if isAdmin();
+      allow read, create: if isRegular();
+    }
+
+    match /weekly/{docId} {
       allow read, write, delete: if isSuperAdmin();
       allow read, create, update, delete: if isAdmin();
       allow read, create: if isRegular();
