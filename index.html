@@ -17,20 +17,22 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 <link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="app.css">
 </head>
 <body>
 
 <div id="loadingScreen" class="login-screen">
   <div class="login-box" style="text-align:center;">
-    <div class="logo" style="justify-content:center;"><div class="logo-icon">🪰</div><div><h1>FlyLab Pro</h1></div></div>
+    <div class="logo" style="justify-content:center;"><div class="logo-icon"><i data-lucide="bug"></i></div><div><h1>FlyLab Pro</h1></div></div>
     <p style="color:var(--text-muted); margin-top:1rem;">Connecting to cloud...</p>
   </div>
 </div>
 
 <div id="loginScreen" class="login-screen hidden">
   <div class="login-box">
-    <div class="logo"><div class="logo-icon">🪰</div><div><h1>FlyLab Pro</h1><p>Cloud Drosophila Lab</p></div></div>
+    <div class="logo"><div class="logo-icon"><i data-lucide="bug"></i></div><div><h1>FlyLab Pro</h1><p>Cloud Drosophila Lab</p></div></div>
     <div class="login-tabs">
       <button class="login-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign in</button>
       <button class="login-tab" id="tabSignup" onclick="switchAuthTab('signup')">Sign up</button>
@@ -51,26 +53,26 @@
 
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-head">
-      <div class="logo-icon">🪰</div>
-      <div class="logo-text"><h1>FlyLab Pro <span style="font-size:10px; color:var(--text-faint); font-weight:600;">v5 ☁️</span></h1><p>Cloud Drosophila Lab</p></div>
+      <div class="logo-icon"><i data-lucide="bug"></i></div>
+      <div class="logo-text"><h1>FlyLab Pro <span class="cloud-chip" style="font-size:10px; color:var(--text-faint); font-weight:600;">v5 <i data-lucide="cloud"></i></span></h1><p>Cloud Drosophila Lab</p></div>
       <button class="nav-collapse-btn" id="collapseBtn" onclick="toggleCollapse()" title="Collapse sidebar">‹</button>
     </div>
     <nav class="sidebar-nav">
       <div class="nav-section-label">Overview</div>
-      <button class="tab-btn active" data-tab="dashboard"><span class="nav-ico">📊</span><span class="nav-label">Dashboard</span></button>
-      <button class="tab-btn" data-tab="calendar"><span class="nav-ico">📅</span><span class="nav-label">Calendar</span></button>
+      <button class="tab-btn active" data-tab="dashboard"><span class="nav-ico"><i data-lucide="layout-dashboard"></i></span><span class="nav-label">Dashboard</span></button>
+      <button class="tab-btn" data-tab="calendar"><span class="nav-ico"><i data-lucide="calendar"></i></span><span class="nav-label">Calendar</span></button>
       <div class="nav-section-label">Lab work</div>
-      <button class="tab-btn" data-tab="stocks"><span class="nav-ico">🧬</span><span class="nav-label">Stocks</span></button>
-      <button class="tab-btn" data-tab="crosses"><span class="nav-ico">⚗️</span><span class="nav-label">Crosses</span></button>
-      <button class="tab-btn" data-tab="virgins"><span class="nav-ico">👶</span><span class="nav-label">Virgins</span></button>
-      <button class="tab-btn" data-tab="phenotype"><span class="nav-ico">🔬</span><span class="nav-label">Phenotyping</span></button>
+      <button class="tab-btn" data-tab="stocks"><span class="nav-ico"><i data-lucide="dna"></i></span><span class="nav-label">Stocks</span></button>
+      <button class="tab-btn" data-tab="crosses"><span class="nav-ico"><i data-lucide="flask-conical"></i></span><span class="nav-label">Crosses</span></button>
+      <button class="tab-btn" data-tab="virgins"><span class="nav-ico"><i data-lucide="baby"></i></span><span class="nav-label">Virgins</span></button>
+      <button class="tab-btn" data-tab="phenotype"><span class="nav-ico"><i data-lucide="microscope"></i></span><span class="nav-label">Phenotyping</span></button>
       <div class="nav-section-label">Records</div>
-      <button class="tab-btn" data-tab="notebook"><span class="nav-ico">📓</span><span class="nav-label">Notebook</span></button>
-      <button class="tab-btn" data-tab="protocols"><span class="nav-ico">📋</span><span class="nav-label">Protocols</span></button>
+      <button class="tab-btn" data-tab="notebook"><span class="nav-ico"><i data-lucide="notebook-pen"></i></span><span class="nav-label">Notebook</span></button>
+      <button class="tab-btn" data-tab="protocols"><span class="nav-ico"><i data-lucide="clipboard-list"></i></span><span class="nav-label">Protocols</span></button>
       <div class="nav-section-label">Workspace</div>
-      <button class="tab-btn" data-tab="settings"><span class="nav-ico">⚙️</span><span class="nav-label">Settings</span></button>
-      <button class="tab-btn admin-only" data-tab="logs" id="logsTab"><span class="nav-ico">🛡️</span><span class="nav-label">Activity Log</span></button>
-      <button class="tab-btn admin-only" data-tab="users" id="usersTab"><span class="nav-ico">👥</span><span class="nav-label">Users</span></button>
+      <button class="tab-btn" data-tab="settings"><span class="nav-ico"><i data-lucide="settings"></i></span><span class="nav-label">Settings</span></button>
+      <button class="tab-btn admin-only" data-tab="logs" id="logsTab"><span class="nav-ico"><i data-lucide="shield-check"></i></span><span class="nav-label">Activity Log</span></button>
+      <button class="tab-btn admin-only" data-tab="users" id="usersTab"><span class="nav-ico"><i data-lucide="users"></i></span><span class="nav-label">Users</span></button>
     </nav>
     <div class="sidebar-foot">
       <div class="user-chip" onclick="logout()" title="Click to logout">
@@ -85,14 +87,14 @@
       <button class="hamburger" onclick="toggleNav()" aria-label="Open menu">☰</button>
       <div class="topbar-title" id="pageTitle">Dashboard</div>
       <div class="topbar-spacer"></div>
-      <button class="cmdk-trigger" onclick="openCmdK()" title="Quick jump (Ctrl/Cmd + K)"><span>🔍</span><span class="cmdk-trigger-txt">Quick jump</span><kbd>⌘K</kbd></button>
-      <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle day / night" aria-label="Toggle day / night"><span class="toggle-ico-sun">☀️</span><span class="toggle-ico-moon">🌙</span></button>
+      <button class="cmdk-trigger" onclick="openCmdK()" title="Quick jump (Ctrl/Cmd + K)"><i data-lucide="search"></i><span class="cmdk-trigger-txt">Quick jump</span><kbd>⌘K</kbd></button>
+      <button class="theme-toggle" onclick="toggleDarkMode()" title="Toggle day / night" aria-label="Toggle day / night"><span class="toggle-ico-sun"><i data-lucide="sun"></i></span><span class="toggle-ico-moon"><i data-lucide="moon"></i></span></button>
       <div class="sync-status" id="syncStatus"><span class="sync-dot"></span><span id="syncText">Synced</span></div>
       <div class="export-menu">
-        <button class="btn btn-sm" onclick="toggleExportMenu()">📥 Export ▾</button>
+        <button class="btn btn-sm" onclick="toggleExportMenu()"><i data-lucide="download"></i> Export ▾</button>
         <div id="exportDropdown" class="export-dropdown hidden">
-          <button onclick="exportXLSX()">📊 Excel (.xlsx)</button>
-          <button onclick="window.print()">🖨️ Print</button>
+          <button onclick="exportXLSX()"><i data-lucide="sheet"></i> Excel (.xlsx)</button>
+          <button onclick="window.print()"><i data-lucide="printer"></i> Print</button>
         </div>
       </div>
     </header>
@@ -101,7 +103,7 @@
 
   <div id="dashboard" class="tab-content">
     <div id="nextAction" class="next-action is-calm" onclick="handleNextActionClick()">
-      <div class="next-action-ico">☕</div>
+      <div class="next-action-ico"><i data-lucide="coffee"></i></div>
       <div class="next-action-body">
         <div class="next-action-kicker">What's next</div>
         <div class="next-action-title">Lab is calm — no urgent actions</div>
@@ -118,20 +120,20 @@
       </div>
     </div>
     <div class="card">
-      <h2>🧬 Stock library overview</h2>
+      <h2><span class="ttl-ico"><i data-lucide="dna"></i></span>Stock library overview</h2>
       <p class="section-sub">By stock type — tap a tile to jump to the filtered list.</p>
       <div id="sectionOverview" class="section-overview"></div>
     </div>
     <div class="grid grid-2">
-      <div class="card"><h2>⏰ Today's schedule</h2><ul class="task-list" id="dailySchedule"></ul></div>
+      <div class="card"><h2><span class="ttl-ico"><i data-lucide="clock"></i></span>Today's schedule</h2><ul class="task-list" id="dailySchedule"></ul></div>
       <div class="card">
-        <h2>👶 Virgin collection · this week</h2>
+        <h2><span class="ttl-ico"><i data-lucide="baby"></i></span>Virgin collection · this week</h2>
         <div id="virginsWeekChart"></div>
       </div>
     </div>
     <div class="grid grid-2">
-      <div class="card"><h2>🔔 Stocks needing flip</h2><div id="flipList" class="task-list"></div></div>
-      <div class="card"><h2>⚗️ Active crosses</h2><div id="activeCrossList" class="task-list"></div></div>
+      <div class="card"><h2><span class="ttl-ico"><i data-lucide="bell"></i></span>Stocks needing flip</h2><div id="flipList" class="task-list"></div></div>
+      <div class="card"><h2><span class="ttl-ico"><i data-lucide="flask-conical"></i></span>Active crosses</h2><div id="activeCrossList" class="task-list"></div></div>
     </div>
   </div>
 
@@ -142,12 +144,12 @@
         <h2 id="calMonthLabel" style="margin:0;"></h2>
         <button class="btn btn-sm" onclick="calMonthShift(1)">Next ›</button>
       </div>
-      <button class="btn btn-sm" onclick="calGoToday()" style="margin-bottom:1rem;">📍 Today</button>
+      <button class="btn btn-sm" onclick="calGoToday()" style="margin-bottom:1rem;"><i data-lucide="map-pin"></i> Today</button>
       <div id="calGrid" class="cal-grid"></div>
       <div id="calLegend" style="display:flex; gap:12px; flex-wrap:wrap; margin-top:1rem;"></div>
     </div>
     <div class="card">
-      <h2>✅ <span id="calDateLabel">Select a day</span></h2>
+      <h2><span class="ttl-ico"><i data-lucide="check-circle-2"></i></span><span id="calDateLabel">Select a day</span></h2>
       <div class="form-row grid-2" id="calAddRow" style="margin-bottom:1rem;">
         <div><select id="calTaskSelect"></select></div>
         <div style="display:flex; align-items:flex-start;"><button class="btn btn-primary" onclick="addCalTask()">+ Add task to this day</button></div>
@@ -155,7 +157,7 @@
       <div id="calDayTasks"></div>
     </div>
     <div class="card">
-      <h2>🔁 Recurring task list <span class="badge b-wt">editable</span></h2>
+      <h2><span class="ttl-ico"><i data-lucide="repeat"></i></span>Recurring task list <span class="badge b-wt">editable</span></h2>
       <p class="section-sub">Tasks you can add to any day. Shared across the lab.</p>
       <div class="form-row grid-2" style="margin-bottom:0;">
         <div><input type="text" id="newRecurTask" placeholder="e.g., Collect virgins from S001"></div>
@@ -167,7 +169,7 @@
 
   <div id="stocks" class="tab-content hidden">
     <div class="card">
-      <h2>🧬 Add new stock</h2>
+      <h2><span class="ttl-ico"><i data-lucide="dna"></i></span>Add new stock</h2>
       <div class="form-row grid-3">
         <div><label>Stock ID</label><input type="text" id="stockId"></div>
         <div><label>Genotype</label><input type="text" id="stockGenotype" placeholder="e.g., w[1118]; +; +"></div>
@@ -186,8 +188,8 @@
       <div class="btn-row"><button class="btn btn-primary" onclick="addStock()">+ Add stock</button></div>
     </div>
     <div class="card">
-      <h2>📚 Stock library <span style="font-size:12px; color:var(--text-muted);">(<span id="stockTotalCount">0</span>)</span></h2>
-      <div class="search-bar"><span>🔍</span><input type="text" id="stockSearch" placeholder="Search ID, genotype, name, location…" oninput="renderStocks()"></div>
+      <h2><span class="ttl-ico"><i data-lucide="library"></i></span>Stock library <span style="font-size:12px; color:var(--text-muted);">(<span id="stockTotalCount">0</span>)</span></h2>
+      <div class="search-bar"><i data-lucide="search"></i><input type="text" id="stockSearch" placeholder="Search ID, genotype, name, location…" oninput="renderStocks()"></div>
       <div class="form-row grid-2" style="margin-bottom:1rem;">
         <div><label>Filter by Stock ID</label><input type="text" id="stockFilterId" placeholder="e.g., S001" oninput="renderStocks()"></div>
         <div><label>Filter by location</label><input type="text" id="stockFilterLocation" placeholder="e.g., shelf-A" oninput="renderStocks()"></div>
@@ -202,7 +204,7 @@
 
   <div id="crosses" class="tab-content hidden">
     <div class="card">
-      <h2>⚗️ Set up new cross</h2>
+      <h2><span class="ttl-ico"><i data-lucide="flask-conical"></i></span>Set up new cross</h2>
       <div class="form-row grid-3">
         <div><label>Cross ID</label><input type="text" id="crossId"></div>
         <div><label>Generation</label><select id="crossGen"><option>P</option><option>F1</option><option>F2</option><option>F3</option></select></div>
@@ -222,7 +224,7 @@
       <div class="btn-row"><button class="btn btn-primary" onclick="addCross()">+ Add cross</button></div>
     </div>
     <div class="card">
-      <h2>📅 Crosses</h2>
+      <h2><span class="ttl-ico"><i data-lucide="calendar"></i></span>Crosses</h2>
       <div class="filter-row">
         <div class="filter-chip active" onclick="filterCrosses('all', this)">All</div>
         <div class="filter-chip" onclick="filterCrosses('active', this)">Active</div>
@@ -236,9 +238,9 @@
   </div>
 
   <div id="virgins" class="tab-content hidden">
-    <div class="alert alert-warn"><span>⚠️</span><div><strong>Critical timing:</strong> <span id="virginAlertText"></span></div></div>
+    <div class="alert alert-warn"><i data-lucide="alert-triangle"></i><div><strong>Critical timing:</strong> <span id="virginAlertText"></span></div></div>
     <div class="card">
-      <h2>👶 Log virgin collection</h2>
+      <h2><span class="ttl-ico"><i data-lucide="baby"></i></span>Log virgin collection</h2>
       <div class="form-row grid-3">
         <div><label>Date</label><input type="date" id="virginDate"></div>
         <div><label>Time</label><input type="time" id="virginTime"></div>
@@ -257,7 +259,7 @@
       <div class="btn-row"><button class="btn btn-primary" onclick="addVirgin()">+ Log collection</button></div>
     </div>
     <div class="card">
-      <h2>📈 Collection history</h2>
+      <h2><span class="ttl-ico"><i data-lucide="trending-up"></i></span>Collection history</h2>
       <div class="grid grid-3" style="margin-bottom:1rem;">
         <div class="stat-card"><div class="stat-label">Today</div><div class="stat-value" id="virginsTodayDetail">0</div></div>
         <div class="stat-card"><div class="stat-label">This week</div><div class="stat-value" id="virginsWeek">0</div></div>
@@ -269,7 +271,7 @@
 
   <div id="phenotype" class="tab-content hidden">
     <div class="card">
-      <h2>🔬 Score phenotypes</h2>
+      <h2><span class="ttl-ico"><i data-lucide="microscope"></i></span>Score phenotypes</h2>
       <div class="form-row grid-3">
         <div><label>Vial/Cross ID</label><input type="text" id="phenoVial"></div>
         <div><label>Generation</label><select id="phenoGen"><option>P</option><option>F1</option><option>F2</option><option>F3</option></select></div>
@@ -283,59 +285,59 @@
       </div>
       <div style="margin-top:1.5rem;"><label>Notes</label><textarea id="phenoNotes"></textarea></div>
       <div class="btn-row">
-        <button class="btn btn-primary" onclick="savePhenotype()">💾 Save</button>
-        <button class="btn btn-success" onclick="quickChiSquare()">📐 Chi-square</button>
+        <button class="btn btn-primary" onclick="savePhenotype()"><i data-lucide="save"></i> Save</button>
+        <button class="btn btn-success" onclick="quickChiSquare()"><i data-lucide="sigma"></i> Chi-square</button>
       </div>
       <div id="chiResult"></div>
     </div>
     <div class="card">
-      <h2>📋 Phenotype records</h2>
+      <h2><span class="ttl-ico"><i data-lucide="clipboard-list"></i></span>Phenotype records</h2>
       <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>Date</th><th>Vial</th><th>Gen</th><th>Categories</th><th>Total</th><th>Notes</th><th></th></tr></thead><tbody id="phenoTableBody"></tbody></table></div>
     </div>
   </div>
 
   <div id="notebook" class="tab-content hidden">
     <div class="card">
-      <h2>📓 New notebook entry</h2>
+      <h2><span class="ttl-ico"><i data-lucide="notebook-pen"></i></span>New notebook entry</h2>
       <div class="form-row grid-2">
         <div><label>Date</label><input type="date" id="noteDate"></div>
         <div><label>Title</label><input type="text" id="noteTitle"></div>
       </div>
-      <div><label>📝 Hypothesis</label><textarea id="noteHypothesis"></textarea></div>
-      <div><label>🧪 Methods</label><textarea id="noteMethods"></textarea></div>
-      <div><label>👀 Results</label><textarea id="noteResults"></textarea></div>
-      <div><label>💭 Conclusions</label><textarea id="noteConclusion"></textarea></div>
-      <div><label>🏷️ Tags</label><input type="text" id="noteTags"></div>
-      <div class="btn-row"><button class="btn btn-primary" onclick="addNote()">💾 Save entry</button></div>
+      <div><label>Hypothesis</label><textarea id="noteHypothesis"></textarea></div>
+      <div><label>Methods</label><textarea id="noteMethods"></textarea></div>
+      <div><label>Results</label><textarea id="noteResults"></textarea></div>
+      <div><label>Conclusions</label><textarea id="noteConclusion"></textarea></div>
+      <div><label>Tags</label><input type="text" id="noteTags"></div>
+      <div class="btn-row"><button class="btn btn-primary" onclick="addNote()"><i data-lucide="save"></i> Save entry</button></div>
     </div>
     <div class="card">
-      <h2>📖 Entries</h2>
-      <div class="search-bar"><span>🔍</span><input type="text" id="noteSearch" placeholder="Search..." oninput="renderNotes()"></div>
+      <h2><span class="ttl-ico"><i data-lucide="book-open"></i></span>Entries</h2>
+      <div class="search-bar"><i data-lucide="search"></i><input type="text" id="noteSearch" placeholder="Search..." oninput="renderNotes()"></div>
       <div id="notesList"></div>
     </div>
   </div>
 
   <div id="protocols" class="tab-content hidden">
     <div class="card">
-      <h2>📋 Protocol library</h2>
+      <h2><span class="ttl-ico"><i data-lucide="clipboard-list"></i></span>Protocol library</h2>
       <div class="btn-row" style="margin-top:0;">
         <button class="btn btn-primary" onclick="openProtocolModal()">+ Add protocol</button>
-        <button class="btn btn-sm" onclick="loadDefaultProtocols()">📥 Load defaults</button>
+        <button class="btn btn-sm" onclick="loadDefaultProtocols()"><i data-lucide="download"></i> Load defaults</button>
       </div>
     </div>
-    <div class="search-bar"><span>🔍</span><input type="text" id="protocolSearch" placeholder="Search..." oninput="renderProtocols()"></div>
+    <div class="search-bar"><i data-lucide="search"></i><input type="text" id="protocolSearch" placeholder="Search..." oninput="renderProtocols()"></div>
     <div class="filter-row" id="protocolFilters"></div>
     <div id="protocolsList"></div>
   </div>
 
   <div id="settings" class="tab-content hidden">
     <div class="card">
-      <h2>🎨 Appearance</h2>
+      <h2><span class="ttl-ico"><i data-lucide="palette"></i></span>Appearance</h2>
       <p class="section-sub">Choose your theme — saved on this device.</p>
       <div class="theme-picker" id="themePicker"></div>
     </div>
     <div class="card">
-      <h2>🔔 Lab alerts</h2>
+      <h2><span class="ttl-ico"><i data-lucide="bell"></i></span>Lab alerts</h2>
       <p class="section-sub">Quiet browser notifications when a stock crosses the flip deadline or a virgin window is about to close.</p>
       <label class="toggle" style="margin-top:0.4rem;">
         <input type="checkbox" id="notifToggle" onchange="toggleNotifications(this.checked)">
@@ -349,32 +351,32 @@
       </p>
     </div>
     <div class="card">
-      <h2>⚙️ Daily schedule</h2>
+      <h2><span class="ttl-ico"><i data-lucide="settings"></i></span>Daily schedule</h2>
       <div class="setting-group" id="scheduleSettings"></div>
-      <div class="btn-row"><button class="btn btn-sm" onclick="addScheduleItem()">+ Add item</button><button class="btn btn-success btn-sm" onclick="saveSettings()">💾 Save</button></div>
+      <div class="btn-row"><button class="btn btn-sm" onclick="addScheduleItem()">+ Add item</button><button class="btn btn-success btn-sm" onclick="saveSettings()"><i data-lucide="save"></i> Save</button></div>
     </div>
     <div class="card">
-      <h2>🌡️ Temperature presets</h2>
+      <h2><span class="ttl-ico"><i data-lucide="thermometer"></i></span>Temperature presets</h2>
       <div class="setting-group" id="tempSettings"></div>
       <div class="btn-row"><button class="btn btn-sm" onclick="addTempPreset()">+ Add</button></div>
     </div>
     <div class="card">
-      <h2>⏱️ Maintenance intervals</h2>
+      <h2><span class="ttl-ico"><i data-lucide="timer"></i></span>Maintenance intervals</h2>
       <div class="setting-group">
         <div class="setting-row"><div class="setting-label">Flip warning (days)</div><input type="number" id="flipWarnDays" style="width:100px;"></div>
         <div class="setting-row"><div class="setting-label">Flip critical (days)</div><input type="number" id="flipCritDays" style="width:100px;"></div>
         <div class="setting-row"><div class="setting-label">Virgin window 25°C (hrs)</div><input type="number" id="virginWindow25" style="width:100px;"></div>
         <div class="setting-row"><div class="setting-label">Virgin window 18°C (hrs)</div><input type="number" id="virginWindow18" style="width:100px;"></div>
       </div>
-      <div class="btn-row"><button class="btn btn-success btn-sm" onclick="saveSettings()">💾 Save</button></div>
+      <div class="btn-row"><button class="btn btn-success btn-sm" onclick="saveSettings()"><i data-lucide="save"></i> Save</button></div>
     </div>
-    <div class="card"><h2>🧬 Stock types</h2><div id="stockTypesList"></div><div class="btn-row"><button class="btn btn-sm" onclick="addStockType()">+ Add</button></div></div>
-    <div class="card"><h2>🔬 Default phenotypes</h2><div id="defaultPhenosList"></div><div class="btn-row"><button class="btn btn-sm" onclick="addDefaultPheno()">+ Add</button></div></div>
+    <div class="card"><h2><span class="ttl-ico"><i data-lucide="dna"></i></span>Stock types</h2><div id="stockTypesList"></div><div class="btn-row"><button class="btn btn-sm" onclick="addStockType()">+ Add</button></div></div>
+    <div class="card"><h2><span class="ttl-ico"><i data-lucide="microscope"></i></span>Default phenotypes</h2><div id="defaultPhenosList"></div><div class="btn-row"><button class="btn btn-sm" onclick="addDefaultPheno()">+ Add</button></div></div>
   </div>
 
   <div id="logs" class="tab-content hidden">
     <div class="card">
-      <h2>🛡️ Activity log <span class="badge b-admin">Admin only</span></h2>
+      <h2><span class="ttl-ico"><i data-lucide="shield-check"></i></span>Activity log <span class="badge b-admin">Admin only</span></h2>
       <p class="section-sub">Real-time history of who added, edited, or deleted records across all devices</p>
       <div class="grid grid-4" style="margin-bottom:1rem;">
         <div class="stat-card"><div class="stat-label">Total</div><div class="stat-value" id="logTotal">0</div></div>
@@ -382,17 +384,17 @@
         <div class="stat-card"><div class="stat-label">Creates</div><div class="stat-value" id="logCreates" style="color:var(--ok);">0</div></div>
         <div class="stat-card"><div class="stat-label">Deletes</div><div class="stat-value" id="logDeletes" style="color:var(--danger);">0</div></div>
       </div>
-      <div class="search-bar"><span>🔍</span><input type="text" id="logSearch" placeholder="Search..." oninput="renderLogs()"></div>
+      <div class="search-bar"><i data-lucide="search"></i><input type="text" id="logSearch" placeholder="Search..." oninput="renderLogs()"></div>
       <div class="filter-row" id="logFilters"></div>
-      <div class="btn-row" style="margin-top:0; margin-bottom:1rem;"><button class="btn btn-sm" onclick="exportLogs()">📥 Export log</button><button class="btn btn-sm" onclick="purgeOldLogsManual()">🧹 Clear logs older than 30 days</button><button class="btn btn-sm btn-danger" onclick="clearAllLogs()">🗑 Delete all logs</button></div>
+      <div class="btn-row" style="margin-top:0; margin-bottom:1rem;"><button class="btn btn-sm" onclick="exportLogs()"><i data-lucide="download"></i> Export log</button><button class="btn btn-sm" onclick="purgeOldLogsManual()"><i data-lucide="eraser"></i> Clear logs older than 30 days</button><button class="btn btn-sm btn-danger" onclick="clearAllLogs()"><i data-lucide="trash-2"></i> Delete all logs</button></div>
       <div class="table-wrap"><table><thead><tr><th>Date & time</th><th>User</th><th>Role</th><th>Action</th><th>Module</th><th>Details</th></tr></thead><tbody id="logTableBody"></tbody></table></div>
     </div>
   </div>
 
   <div id="users" class="tab-content hidden">
     <div class="card">
-      <h2>👥 Team members <span class="badge b-admin">Admin only</span></h2>
-      <div class="alert alert-info"><span>ℹ️</span><div>Everyone signs up as <strong>Regular</strong> (view + add only). As Super Admin you can promote anyone to <strong>Admin</strong> (edit + delete) or <strong>Super Admin</strong> (full control + this page).</div></div>
+      <h2><span class="ttl-ico"><i data-lucide="users"></i></span>Team members <span class="badge b-admin">Admin only</span></h2>
+      <div class="alert alert-info"><i data-lucide="info"></i><div>Everyone signs up as <strong>Regular</strong> (view + add only). As Super Admin you can promote anyone to <strong>Admin</strong> (edit + delete) or <strong>Super Admin</strong> (full control + this page).</div></div>
       <div class="table-wrap"><table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Joined</th><th>Actions logged</th><th></th></tr></thead><tbody id="usersTableBody"></tbody></table></div>
     </div>
   </div>
@@ -404,8 +406,8 @@
     <div class="bulk-bar can-edit-only" id="bulkBar" aria-live="polite">
       <div class="bulk-bar-count"><strong id="bulkBarCount">0</strong> selected</div>
       <button class="btn btn-sm" onclick="bulkClearSelection()">Clear</button>
-      <button class="btn btn-sm" onclick="bulkExport()">📥 Export</button>
-      <button class="btn btn-sm btn-danger" onclick="bulkDelete()">🗑 Delete</button>
+      <button class="btn btn-sm" onclick="bulkExport()"><i data-lucide="download"></i> Export</button>
+      <button class="btn btn-sm btn-danger" onclick="bulkDelete()"><i data-lucide="trash-2"></i> Delete</button>
     </div>
   </div><!-- /.main -->
 </div>
@@ -422,17 +424,17 @@
     <div><label>Steps (one per line)</label><textarea id="protocolSteps" style="min-height:120px;"></textarea></div>
     <div><label>Notes</label><textarea id="protocolNotes"></textarea></div>
     <div>
-      <label>📎 Attach file (PDF / Word)</label>
+      <label class="file-attach"><i data-lucide="paperclip"></i> Attach file (PDF / Word)</label>
       <input type="file" id="protocolFile" accept=".pdf,.doc,.docx" onchange="handleProtocolFile(event)">
       <div id="protocolFileInfo" style="font-size:12px; color:var(--text-muted); margin-top:6px;"></div>
     </div>
-    <div class="btn-row"><button class="btn btn-primary" onclick="saveProtocol()">💾 Save</button><button class="btn" onclick="closeProtocolModal()">Cancel</button></div>
+    <div class="btn-row"><button class="btn btn-primary" onclick="saveProtocol()"><i data-lucide="save"></i> Save</button><button class="btn" onclick="closeProtocolModal()">Cancel</button></div>
   </div>
 </div>
 
 <div id="cmdk" class="cmdk-bg hidden">
   <div class="cmdk-panel">
-    <div class="cmdk-input-wrap"><span>🔍</span><input type="text" id="cmdkInput" placeholder="Jump to a section or search any record…" autocomplete="off"></div>
+    <div class="cmdk-input-wrap"><i data-lucide="search"></i><input type="text" id="cmdkInput" placeholder="Jump to a section or search any record…" autocomplete="off"></div>
     <div class="cmdk-list" id="cmdkList"></div>
     <div class="cmdk-hint">
       <span><kbd>↑</kbd> <kbd>↓</kbd> navigate</span>
@@ -445,6 +447,46 @@
     </div>
   </div>
 </div>
+
+<!-- ===== Lucide icon renderer =====
+     Replaces every <i data-lucide="…"> with inline SVG. Exposed as
+     window.refreshIcons so dynamic renders (app.js templates, modals
+     opened after first paint) can re-run it without re-walking the DOM.
+     A debounced MutationObserver also picks up dynamic innerHTML changes
+     automatically so we don't have to touch app.js. -->
+<script>
+window.refreshIcons = function () {
+  if (window.lucide && typeof window.lucide.createIcons === 'function') {
+    try { window.lucide.createIcons(); } catch (e) { /* ignore double-render */ }
+  }
+};
+document.addEventListener('DOMContentLoaded', window.refreshIcons);
+window.addEventListener('load', window.refreshIcons);
+
+// Auto-render <i data-lucide> markers added by dynamic templates (renderStocks,
+// renderCrosses, modal opens, etc.). Coalesced via rAF so a burst of innerHTML
+// writes only triggers one createIcons pass.
+(function () {
+  let scheduled = false;
+  const schedule = () => {
+    if (scheduled) return;
+    scheduled = true;
+    requestAnimationFrame(() => { scheduled = false; window.refreshIcons(); });
+  };
+  const obs = new MutationObserver((records) => {
+    for (const r of records) {
+      for (const n of r.addedNodes) {
+        if (n.nodeType !== 1) continue;
+        if (n.hasAttribute && n.hasAttribute('data-lucide')) { schedule(); return; }
+        if (n.querySelector && n.querySelector('[data-lucide]')) { schedule(); return; }
+      }
+    }
+  });
+  const start = () => obs.observe(document.body, { childList: true, subtree: true });
+  if (document.body) start();
+  else document.addEventListener('DOMContentLoaded', start);
+})();
+</script>
 
 <!-- ===== Scripts ===== -->
 <script type="module" src="app.js"></script>

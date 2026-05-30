@@ -1,0 +1,62 @@
+/* ── FlyLab Pro · Lucide icon layer ─────────────────────────────────
+   The original prototype used Unicode emoji throughout — sidebar nav,
+   card titles, buttons, alerts, search inputs. The design system
+   standardizes on Lucide line icons (sage accent, coral brand bug).
+   This layer is loaded AFTER styles.css and sizes the inline SVGs to
+   sit exactly where the emoji used to sit.
+   ────────────────────────────────────────────────────────────────── */
+
+/* Lucide injects <svg> in place of <i data-lucide>; default sizing. */
+[data-lucide], .lc { display: inline-flex; align-items: center; justify-content: center; }
+svg.lucide { width: 18px; height: 18px; stroke-width: 1.9; flex: none; }
+
+/* Sidebar nav icons */
+.sidebar .nav-ico svg.lucide { width: 18px; height: 18px; color: currentColor; }
+.nav-ico { width: 20px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* Card title icons — sage, sit left of the serif title */
+.card h2 svg.lucide { width: 19px; height: 19px; stroke-width: 1.9; color: var(--accent); }
+.card h2 .ttl-ico { display: inline-flex; margin-right: 6px; vertical-align: -3px; }
+.modal h3 svg.lucide { width: 19px; height: 19px; color: var(--accent); }
+.modal h3 .ttl-ico { display: inline-flex; margin-right: 6px; vertical-align: -3px; }
+
+/* Topbar control icons */
+.cmdk-trigger svg.lucide { width: 15px; height: 15px; }
+.theme-toggle svg.lucide { width: 17px; height: 17px; }
+.btn svg.lucide { width: 15px; height: 15px; stroke-width: 2; vertical-align: -2px; margin-right: 4px; }
+.btn-sm svg.lucide { width: 14px; height: 14px; }
+.sync-status svg.lucide { width: 12px; height: 12px; }
+
+/* cmdk row + counter + search icons */
+.cmdk-item .nav-ico svg.lucide { width: 17px; height: 17px; color: currentColor; }
+.cmdk-input-wrap svg.lucide { width: 18px; height: 18px; color: var(--text-muted); }
+.search-bar svg.lucide { width: 16px; height: 16px; color: var(--text-muted); flex: none; }
+.next-action-ico svg.lucide { width: 24px; height: 24px; }
+.alert svg.lucide { width: 18px; height: 18px; flex: none; margin-top: 1px; }
+.alert-warn svg.lucide { color: var(--warn); }
+.alert-info svg.lucide { color: var(--info); }
+.alert-danger svg.lucide { color: var(--danger); }
+.fab svg.lucide { width: 24px; height: 24px; stroke-width: 2.2; }
+.file-attach svg.lucide { width: 16px; height: 16px; }
+
+/* logo mark — bug glyph on accent-soft tile (used in sidebar + login). The
+   brand bug is coral (the only identity-colored icon); everything else is sage. */
+.logo-icon svg.lucide { width: 22px; height: 22px; color: var(--brand-coral, #f2785c); stroke-width: 1.9; }
+.sidebar-head .logo-icon svg.lucide { width: 19px; height: 19px; }
+
+/* keep user-chip name/role on single clean lines */
+.user-info { min-width: 0; }
+.user-info strong, .user-info span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* The cloud chip next to the version */
+.cloud-chip { display: inline-flex; align-items: center; gap: 3px; }
+.cloud-chip svg.lucide { width: 11px; height: 11px; color: var(--text-faint); }
+
+/* stat delta arrow */
+.stat-delta svg.lucide { width: 12px; height: 12px; }
+
+/* action-btn icons (edit / delete / mark-flipped) — keep current size */
+.action-btn svg.lucide { width: 14px; height: 14px; }
+
+/* Settings card eyebrow icons — sit on the left of the h2 */
+.theme-picker svg.lucide { width: 14px; height: 14px; }
