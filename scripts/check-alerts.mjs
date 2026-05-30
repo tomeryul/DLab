@@ -54,6 +54,26 @@ function nowInLocalTZ(now = new Date()) {
   };
 }
 
+// Convert a wall-clock date+time captured in LOCAL_TZ (e.g. '2026-05-29','08:00')
+// into the UTC milliseconds for that moment. Without this, new Date('YYYY-MM-DDTHH:MM')
+// is interpreted in the runner's timezone (UTC on GitHub Actions), so a virgin
+// collected at 08:00 Israel time would be read as 08:00 UTC — a 2–3 hour drift
+// depending on IDT/IST. DST is handled implicitly via Intl.
+function localTZToUTCms(dateStr, timeStr) {
+  const [y, mo, d] = String(dateStr).split('-').map(Number);
+  const [h, mi]    = String(timeStr).split(':').map(Number);
+  if ([y, mo, d, h, mi].some(n => !Number.isFinite(n))) return NaN;
+  const fakeUTC = Date.UTC(y, mo - 1, d, h, mi);
+  const fmt = new Intl.DateTimeFormat('en-GB', {
+    timeZone: LOCAL_TZ,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  });
+  const p = Object.fromEntries(fmt.formatToParts(new Date(fakeUTC)).map(x => [x.type, x.value]));
+  const tzAsIfUTC = Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute, +p.second);
+  return fakeUTC - (tzAsIfUTC - fakeUTC);
+}
+
 function computeAlerts(stocks, virgins, settings) {
   const out = [];
   const critDays = settings.flipCritDays || 14;
@@ -83,9 +103,9 @@ function computeAlerts(stocks, virgins, settings) {
   const winHrs = settings.virginWindow25 || 12;
   for (const v of virgins) {
     if (!v.date || !v.time) continue;
-    const collected = new Date(`${v.date}T${v.time}`);
-    if (isNaN(+collected)) continue;
-    const closesAt = collected.getTime() + winHrs * 3600 * 1000;
+    const collectedMs = localTZToUTCms(v.date, v.time);
+    if (!Number.isFinite(collectedMs)) continue;
+    const closesAt = collectedMs + winHrs * 3600 * 1000;
     const minsLeft = (closesAt - Date.now()) / 60000;
     if (minsLeft > 0 && minsLeft <= VIRGIN_LEAD_MIN) {
       out.push({
