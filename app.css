@@ -60,3 +60,8 @@ svg.lucide { width: 18px; height: 18px; stroke-width: 1.9; flex: none; }
 
 /* Settings card eyebrow icons — sit on the left of the h2 */
 .theme-picker svg.lucide { width: 14px; height: 14px; }
+
+/* Stop iOS Safari / installed-PWA from double-tap-zooming when the user taps
+   anywhere twice in quick succession. `manipulation` keeps pinch-to-zoom and
+   panning, only suppresses the legacy double-tap gesture. */
+html, body { touch-action: manipulation; }
