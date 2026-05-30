@@ -65,3 +65,12 @@ svg.lucide { width: 18px; height: 18px; stroke-width: 1.9; flex: none; }
    anywhere twice in quick succession. `manipulation` keeps pinch-to-zoom and
    panning, only suppresses the legacy double-tap gesture. */
 html, body { touch-action: manipulation; }
+
+/* Stop iOS from auto-zooming the viewport when an input/select/textarea gains
+   focus. Apple triggers the focus-zoom whenever the field's computed font-size
+   is below 16px — the max() keeps any larger value that styles.css set, and
+   only floors to 16px for the small ones. Applied to actual form controls
+   (not buttons, which don't trigger focus-zoom). */
+input, select, textarea {
+  font-size: max(16px, 1em);
+}
