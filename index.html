@@ -62,8 +62,8 @@
       <button class="tab-btn active" data-tab="dashboard"><span class="nav-ico"><i data-lucide="layout-dashboard"></i></span><span class="nav-label">Dashboard</span></button>
       <button class="tab-btn" data-tab="calendar"><span class="nav-ico"><i data-lucide="calendar"></i></span><span class="nav-label">Calendar</span></button>
       <div class="nav-section-label">Lab work</div>
-      <button class="tab-btn" data-tab="stocks" data-source="stocks" onclick="setStockSource('stocks')"><span class="nav-ico"><i data-lucide="dna"></i></span><span class="nav-label">Stock 1</span></button>
-      <button class="tab-btn" data-tab="stocks" data-source="stocks2" onclick="setStockSource('stocks2')"><span class="nav-ico"><i data-lucide="dna"></i></span><span class="nav-label">Stock 2</span></button>
+      <button class="tab-btn" data-tab="stocks" data-source="stocks" onclick="setStockSource('stocks')"><span class="nav-ico"><i data-lucide="dna"></i></span><span class="nav-label">Stock A</span></button>
+      <button class="tab-btn" data-tab="stocks" data-source="stocks2" onclick="setStockSource('stocks2')"><span class="nav-ico"><i data-lucide="dna"></i></span><span class="nav-label">Stock B</span></button>
       <button class="tab-btn" data-tab="stocks" data-source="weekly" onclick="setStockSource('weekly')"><span class="nav-ico"><i data-lucide="dna"></i></span><span class="nav-label">Weekly</span></button>
       <button class="tab-btn" data-tab="crosses"><span class="nav-ico"><i data-lucide="flask-conical"></i></span><span class="nav-label">Crosses</span></button>
       <button class="tab-btn" data-tab="virgins"><span class="nav-ico"><i data-lucide="baby"></i></span><span class="nav-label">Virgins</span></button>
@@ -154,7 +154,11 @@
       <h2><span class="ttl-ico"><i data-lucide="check-circle-2"></i></span><span id="calDateLabel">Select a day</span></h2>
       <div class="form-row grid-2" id="calAddRow" style="margin-bottom:1rem;">
         <div><select id="calTaskSelect"></select></div>
-        <div style="display:flex; align-items:flex-start;"><button class="btn btn-primary" onclick="addCalTask()">+ Add task to this day</button></div>
+        <div style="display:flex; align-items:flex-start;"><button class="btn btn-primary" onclick="addCalTask()">+ Add from list</button></div>
+      </div>
+      <div class="form-row grid-2" style="margin-bottom:1rem;">
+        <div><input type="text" id="calCustomTask" placeholder="Or type a one-off task…" onkeydown="if(event.key==='Enter')addCalTask(true)"></div>
+        <div style="display:flex; align-items:flex-start;"><button class="btn btn-primary" onclick="addCalTask(true)">+ Add custom task</button></div>
       </div>
       <div id="calDayTasks"></div>
     </div>
@@ -186,6 +190,9 @@
         <div><label>Last flip date</label><input type="date" id="stockFlipDate"></div>
         <div><label>Chromosome</label><select id="stockChrom"><option value="">N/A</option><option>X</option><option>2</option><option>3</option><option>4</option></select></div>
       </div>
+      <div class="form-row grid-2 weekly-only">
+        <div><label>Container</label><select id="stockContainer"><option value="">Choose…</option><option value="vial">Vial</option><option value="bottle">Bottle</option></select></div>
+      </div>
       <div><label>Notes</label><textarea id="stockNotes"></textarea></div>
       <div class="btn-row"><button class="btn btn-primary" onclick="addStock()">+ Add stock</button></div>
     </div>
@@ -200,7 +207,7 @@
       <div class="btn-row can-edit-only" style="margin-top:0; margin-bottom:1rem;">
         <button class="btn btn-sm" id="flipAllBtn" onclick="flipAllFiltered()">↻ Flip all in current filter (<span id="flipAllCount">0</span>)</button>
       </div>
-      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>ID</th><th>Genotype</th><th>Type</th><th>Source</th><th>Location</th><th>Flip</th><th>Status</th><th></th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th class="sortable" data-sort="id" onclick="cycleSort('stocks','id')">ID</th><th>Genotype</th><th>Type</th><th>Source</th><th>Location</th><th>Flip</th><th>Status</th><th></th></tr></thead><tbody id="stockTableBody"></tbody></table></div>
     </div>
   </div>
 
@@ -235,7 +242,7 @@
         <div class="filter-chip" onclick="filterCrosses('F1', this)">F1</div>
         <div class="filter-chip" onclick="filterCrosses('F2', this)">F2</div>
       </div>
-      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>ID</th><th>Gen</th><th>♀ × ♂</th><th>Setup</th><th>Day</th><th>Temp</th><th>Status</th><th></th></tr></thead><tbody id="crossTableBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th class="sortable" data-sort="id" onclick="cycleSort('crosses','id')">ID</th><th>Gen</th><th>♀ × ♂</th><th>Setup</th><th>Day</th><th>Temp</th><th>Status</th><th></th></tr></thead><tbody id="crossTableBody"></tbody></table></div>
     </div>
   </div>
 
@@ -267,7 +274,7 @@
         <div class="stat-card"><div class="stat-label">This week</div><div class="stat-value" id="virginsWeek">0</div></div>
         <div class="stat-card"><div class="stat-label">All time</div><div class="stat-value" id="virginsAll">0</div></div>
       </div>
-      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>Date</th><th>Time</th><th>Session</th><th>Source</th><th>♀</th><th>♂</th><th>Container</th><th>Temp</th><th></th></tr></thead><tbody id="virginTableBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th class="sortable" data-sort="date" onclick="cycleSort('virgins','date')">Date</th><th>Time</th><th>Session</th><th>Source</th><th>♀</th><th>♂</th><th>Container</th><th>Temp</th><th></th></tr></thead><tbody id="virginTableBody"></tbody></table></div>
     </div>
   </div>
 
@@ -294,7 +301,7 @@
     </div>
     <div class="card">
       <h2><span class="ttl-ico"><i data-lucide="clipboard-list"></i></span>Phenotype records</h2>
-      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th>Date</th><th>Vial</th><th>Gen</th><th>Categories</th><th>Total</th><th>Notes</th><th></th></tr></thead><tbody id="phenoTableBody"></tbody></table></div>
+      <div class="table-wrap"><table><thead><tr><th class="row-check-col can-edit-only"></th><th class="sortable" data-sort="date" onclick="cycleSort('phenotypes','date')">Date</th><th class="sortable" data-sort="vial" onclick="cycleSort('phenotypes','vial')">Vial</th><th>Gen</th><th>Categories</th><th>Total</th><th>Notes</th><th></th></tr></thead><tbody id="phenoTableBody"></tbody></table></div>
     </div>
   </div>
 

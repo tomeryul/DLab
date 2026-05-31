@@ -67,16 +67,18 @@ const defaultProtocols = [
 // flips to whichever source the sidebar button last selected. Existing code
 // keeps reading data.stocks unchanged.
 const STOCK_SOURCES = ['stocks', 'stocks2', 'weekly'];
-const STOCK_SOURCE_LABELS = { stocks: 'Stock 1', stocks2: 'Stock 2', weekly: 'Weekly' };
+const STOCK_SOURCE_LABELS = { stocks: 'Stock A', stocks2: 'Stock B', weekly: 'Weekly' };
 window.activeStockSource = 'stocks';
 function stockModuleLabel(src) { return STOCK_SOURCE_LABELS[src || window.activeStockSource] || 'Stocks'; }
 window.setStockSource = function (src) {
   if (!STOCK_SOURCES.includes(src) || src === window.activeStockSource) {
     // Even when no-op, refresh visuals so the sidebar active rail follows the click.
     paintActiveStockButton();
+    document.body.dataset.stockSource = window.activeStockSource;
     return;
   }
   window.activeStockSource = src;
+  document.body.dataset.stockSource = src; // drives the .weekly-only CSS toggle
   // Clear any bulk selection from the previous source — different list, different rows.
   if (typeof bulkSel === 'object' && bulkSel) STOCK_SOURCES.forEach(s => bulkSel[s] && bulkSel[s].clear && bulkSel[s].clear());
   if (typeof renderBulkBar === 'function') renderBulkBar();
@@ -97,6 +99,57 @@ function paintActiveStockButton() {
   });
 }
 window.paintActiveStockButton = paintActiveStockButton;
+// Initialize the body's stock-source dataset so .weekly-only CSS reflects
+// the default source from the first paint, before any sidebar click.
+if (typeof document !== 'undefined' && document.body) document.body.dataset.stockSource = window.activeStockSource;
+else if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => { document.body.dataset.stockSource = window.activeStockSource; });
+
+// ── Per-table sort state — { by: <field>, dir: 'asc'|'desc' } per table key.
+// Click on a sortable column header cycles asc → desc → off; renderXxx() reads
+// this and applies sortRows() before rendering.
+const tableSort = { stocks: null, crosses: null, virgins: null, phenotypes: null, notes: null, protocols: null };
+function sortRows(rows, sort) {
+  if (!sort || !sort.by) return rows;
+  const k = sort.by;
+  const dir = sort.dir === 'desc' ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const va = a[k], vb = b[k];
+    if (va == null && vb == null) return 0;
+    if (va == null) return 1;
+    if (vb == null) return -1;
+    // Natural compare: numeric chunks compare numerically, so "S2" < "S10".
+    return String(va).localeCompare(String(vb), undefined, { numeric: true, sensitivity: 'base' }) * dir;
+  });
+}
+function paintSortHeaders(scopeSel, sort) {
+  document.querySelectorAll(scopeSel + ' th.sortable').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (sort && sort.by && th.dataset.sort === sort.by) {
+      th.classList.add(sort.dir === 'desc' ? 'sort-desc' : 'sort-asc');
+    }
+  });
+}
+window.cycleSort = function (tableKey, field) {
+  const cur = tableSort[tableKey];
+  let next;
+  if (!cur || cur.by !== field) next = { by: field, dir: 'asc' };
+  else if (cur.dir === 'asc') next = { by: field, dir: 'desc' };
+  else next = null;
+  tableSort[tableKey] = next;
+  if (tableKey === 'stocks' && typeof renderStocks === 'function') renderStocks();
+  else if (tableKey === 'crosses' && typeof renderCrosses === 'function') renderCrosses();
+  else if (tableKey === 'virgins' && typeof renderVirgins === 'function') renderVirgins();
+  else if (tableKey === 'phenotypes' && typeof renderPhenotypes === 'function') renderPhenotypes();
+};
+
+// ── Click anywhere on a record row (except buttons / inputs) to toggle the
+// notes row below. The notes row sits immediately after, hidden by default.
+window.toggleRowNotes = function (ev, id) {
+  if (ev && ev.target && ev.target.closest('button, input, a, label, .action-btn')) return;
+  const row = document.querySelector('tr.record-row[data-record-id="' + id + '"]');
+  if (!row) return;
+  row.classList.toggle('expanded');
+};
 let data = { _stockData: { stocks: [], stocks2: [], weekly: [] }, crosses: [], virgins: [], phenotypes: [], notes: [], protocols: [], calTasks: [], logs: [], settings: JSON.parse(JSON.stringify(defaultSettings)) };
 Object.defineProperty(data, 'stocks', {
   configurable: true,
@@ -1174,13 +1227,23 @@ window.removeRecurTask = async function(i) {
   await saveSettingsToCloud();
 };
 
-window.addCalTask = async function() {
+window.addCalTask = async function(useCustom) {
   const date = calSelectedDate;
-  const task = document.getElementById('calTaskSelect').value;
   if (!date) { toast('Select a day first'); return; }
-  if (!task) { toast('Pick a task'); return; }
+  let task;
+  if (useCustom) {
+    const inp = document.getElementById('calCustomTask');
+    task = (inp && inp.value || '').trim();
+    if (!task) { toast('Type a task first'); inp && inp.focus(); return; }
+  } else {
+    task = document.getElementById('calTaskSelect').value;
+    if (!task) { toast('Pick a task'); return; }
+  }
   await dbAdd('calTasks', { date, task, color: colorForTask(task), done: false });
   logActivity('create', 'Calendar', `Added "${task}" to ${date}`);
+  if (useCustom) {
+    const inp = document.getElementById('calCustomTask'); if (inp) inp.value = '';
+  }
   toast('Task added');
 };
 window.toggleCalTask = async function(id) {
@@ -1386,12 +1449,19 @@ window.addStock = async function() {
     chrom: document.getElementById('stockChrom').value,
     notes: document.getElementById('stockNotes').value.trim()
   };
+  // Container is only shown on the Weekly source; save it only when we're there
+  // so Stock A / Stock B docs stay clean.
+  if (window.activeStockSource === 'weekly') {
+    const c = document.getElementById('stockContainer');
+    if (c && c.value) stock.container = c.value;
+  }
   if (!stock.id) { flagField('stockId', 'Stock ID is required'); return; }
   try {
     await dbAdd(window.activeStockSource, stock);
     logActivity('create', stockModuleLabel(), `Added stock "${stock.id}" (${stock.genotype})`);
     captureDefaults('stock', ['stockType', 'stockSource', 'stockLocation', 'stockChrom']);
     ['stockId','stockGenotype','stockName','stockSource','stockLocation','stockNotes'].forEach(id => document.getElementById(id).value = '');
+    const cc = document.getElementById('stockContainer'); if (cc) cc.value = '';
     toast('Stock added', { tone: 'success' });
   } catch (e) {
     console.error('addStock failed', e);
@@ -1407,20 +1477,22 @@ window.editStock = function(id) {
   if (!canEdit()) { toast('No permission to edit'); return; }
   const s = data.stocks.find(x => x._id === id); if (!s) return;
   const src = window.activeStockSource;
+  const fields = [
+    { key: 'id', label: 'Stock ID', required: true },
+    { key: 'genotype', label: 'Genotype', placeholder: 'e.g., w[1118]; +; +' },
+    { key: 'name', label: 'Common name' },
+    { key: 'type', label: 'Type', type: 'select', options: ['', ...(data.settings.stockTypes || [])] },
+    { key: 'source', label: 'Source' },
+    { key: 'location', label: 'Location' },
+    { key: 'flipDate', label: 'Last flip date', type: 'date' },
+    { key: 'chrom', label: 'Chromosome', type: 'select', options: ['', 'X', '2', '3', '4'] }
+  ];
+  if (src === 'weekly') fields.push({ key: 'container', label: 'Container', type: 'select', options: ['', 'vial', 'bottle'] });
+  fields.push({ key: 'notes', label: 'Notes', type: 'textarea' });
   openEditModal({
     title: `Edit stock ${s.id}`,
     values: s,
-    fields: [
-      { key: 'id', label: 'Stock ID', required: true },
-      { key: 'genotype', label: 'Genotype', placeholder: 'e.g., w[1118]; +; +' },
-      { key: 'name', label: 'Common name' },
-      { key: 'type', label: 'Type', type: 'select', options: ['', ...(data.settings.stockTypes || [])] },
-      { key: 'source', label: 'Source' },
-      { key: 'location', label: 'Location' },
-      { key: 'flipDate', label: 'Last flip date', type: 'date' },
-      { key: 'chrom', label: 'Chromosome', type: 'select', options: ['', 'X', '2', '3', '4'] },
-      { key: 'notes', label: 'Notes', type: 'textarea' }
-    ],
+    fields,
     onSave: async (updates) => {
       await dbUpdate(src, id, updates);
       logActivity('edit', stockModuleLabel(src), `Edited stock "${updates.id || s.id}"`);
@@ -1497,7 +1569,9 @@ function describeStockFilter() {
 function renderStocks() {
   const tbody = document.getElementById('stockTableBody');
   if (!tbody) return;
-  const filtered = currentlyFilteredStocks();
+  const src = window.activeStockSource;
+  let filtered = currentlyFilteredStocks();
+  filtered = sortRows(filtered, tableSort.stocks);
   document.getElementById('stockTotalCount').textContent = data.stocks.length;
   const countEl = document.getElementById('flipAllCount');
   if (countEl) countEl.textContent = filtered.length;
@@ -1507,6 +1581,7 @@ function renderStocks() {
     // Restore label in case a previous bulk-flip left it as "Flipping…"
     flipAllBtn.innerHTML = `↻ Flip all in current filter (<span id="flipAllCount">${filtered.length}</span>)`;
   }
+  paintSortHeaders('#stocks', tableSort.stocks);
   if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-3);">No stocks match the current filter</td></tr>'; return; }
   const warnDays = data.settings.flipWarnDays, critDays = data.settings.flipCritDays;
   tbody.innerHTML = filtered.map(s => {
@@ -1517,10 +1592,13 @@ function renderStocks() {
       else if (days > warnDays) { flipStatus = `<span style="color:var(--warn);">${days}d</span>`; status = '<span class="badge b-warn">Soon</span>'; }
       else flipStatus = `<span style="color:var(--ok);">${days}d</span>`;
     }
-    return `<tr data-record-id="${s._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="stocks" data-id="${s._id}" onchange="bulkToggleRow('stocks', '${s._id}', this.checked)" ${bulkSel.stocks.has(s._id) ? 'checked' : ''}></td><td><strong>${s.id}</strong>${s.name ? '<br><span style="font-size:11px;color:var(--text-muted);">' + s.name + '</span>' : ''}</td>
-      <td style="font-family:monospace; font-size:12px;">${s.genotype || '—'}</td><td>${s.type || '—'}</td><td>${s.source || '—'}</td>
-      <td style="font-family:monospace; font-size:12px;">${s.location || '—'}</td><td>${flipStatus}</td><td>${status}</td>
-      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Mark flipped today" onclick="markFlipped('${s._id}')">↻</button><button class="action-btn edit-btn" title="Edit" onclick="editStock('${s._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="deleteStock('${s._id}')"><i data-lucide="trash-2"></i></button></td></tr>`;
+    const notesText = (s.notes || '').trim();
+    const notesCell = notesText ? escapeHtml(notesText) : '<span class="notes-empty">No notes</span>';
+    return `<tr class="record-row" data-record-id="${s._id}" onclick="toggleRowNotes(event, '${s._id}')"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="${src}" data-id="${s._id}" onchange="bulkToggleRow('${src}', '${s._id}', this.checked)" ${bulkSel[src].has(s._id) ? 'checked' : ''}></td><td><strong>${escapeHtml(s.id || '')}</strong>${s.name ? '<br><span style="font-size:11px;color:var(--text-muted);">' + escapeHtml(s.name) + '</span>' : ''}</td>
+      <td style="font-family:monospace; font-size:12px;">${escapeHtml(s.genotype || '—')}</td><td>${escapeHtml(s.type || '—')}</td><td>${escapeHtml(s.source || '—')}</td>
+      <td style="font-family:monospace; font-size:12px;">${escapeHtml(s.location || '—')}</td><td>${flipStatus}</td><td>${status}</td>
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Mark flipped today" onclick="event.stopPropagation(); markFlipped('${s._id}')">↻</button><button class="action-btn edit-btn" title="Edit" onclick="event.stopPropagation(); editStock('${s._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="event.stopPropagation(); deleteStock('${s._id}')"><i data-lucide="trash-2"></i></button></td></tr>
+      <tr class="notes-row" data-notes-for="${s._id}"><td colspan="9"><strong style="color:var(--text-2);">Notes:</strong> ${notesCell}</td></tr>`;
   }).join('');
 }
 
@@ -1597,14 +1675,19 @@ function renderCrosses() {
     if (activeCrossFilter === 'active' || activeCrossFilter === 'complete') return c.status === activeCrossFilter;
     return c.gen === activeCrossFilter;
   });
+  filtered = sortRows(filtered, tableSort.crosses);
+  paintSortHeaders('#crosses', tableSort.crosses);
   if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-3);">No crosses</td></tr>'; return; }
   tbody.innerHTML = filtered.map(c => {
     const day = c.date ? Math.floor((Date.now() - new Date(c.date).getTime()) / 86400000) : 0;
-    return `<tr data-record-id="${c._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="crosses" data-id="${c._id}" onchange="bulkToggleRow('crosses', '${c._id}', this.checked)" ${bulkSel.crosses.has(c._id) ? 'checked' : ''}></td><td><strong>${c.id}</strong></td><td><span class="badge b-${c.gen.toLowerCase()}">${c.gen}</span></td>
-      <td style="font-family:monospace; font-size:11px;">${c.female || '?'} <span style="color:var(--text-muted);">×</span> ${c.male || '?'}</td>
+    const notesText = (c.hypothesis || '').trim();
+    const notesCell = notesText ? escapeHtml(notesText) : '<span class="notes-empty">No hypothesis</span>';
+    return `<tr class="record-row" data-record-id="${c._id}" onclick="toggleRowNotes(event, '${c._id}')"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="crosses" data-id="${c._id}" onchange="bulkToggleRow('crosses', '${c._id}', this.checked)" ${bulkSel.crosses.has(c._id) ? 'checked' : ''}></td><td><strong>${escapeHtml(c.id || '')}</strong></td><td><span class="badge b-${(c.gen || '').toLowerCase()}">${escapeHtml(c.gen || '')}</span></td>
+      <td style="font-family:monospace; font-size:11px;">${escapeHtml(c.female || '?')} <span style="color:var(--text-muted);">×</span> ${escapeHtml(c.male || '?')}</td>
       <td>${c.date ? new Date(c.date).toLocaleDateString() : '—'}</td><td><strong>Day ${day}</strong></td>
-      <td>${c.temp || 25}°C</td><td><span class="badge b-${c.status === 'active' ? 'active' : 'done'}">${c.status}</span></td>
-      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Toggle status" onclick="toggleCrossStatus('${c._id}')">✓</button><button class="action-btn edit-btn" title="Edit" onclick="editCross('${c._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="deleteCross('${c._id}')"><i data-lucide="trash-2"></i></button></td></tr>`;
+      <td>${c.temp || 25}°C</td><td><span class="badge b-${c.status === 'active' ? 'active' : 'done'}">${escapeHtml(c.status || '')}</span></td>
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Toggle status" onclick="event.stopPropagation(); toggleCrossStatus('${c._id}')">✓</button><button class="action-btn edit-btn" title="Edit" onclick="event.stopPropagation(); editCross('${c._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="event.stopPropagation(); deleteCross('${c._id}')"><i data-lucide="trash-2"></i></button></td></tr>
+      <tr class="notes-row" data-notes-for="${c._id}"><td colspan="9"><strong style="color:var(--text-2);">Hypothesis:</strong> ${notesCell}</td></tr>`;
   }).join('');
 }
 
@@ -1667,13 +1750,20 @@ window.editVirgin = function(id) {
 function renderVirgins() {
   const tbody = document.getElementById('virginTableBody');
   if (!tbody) return;
-  const sorted = [...data.virgins].sort((a,b) => (b.created||0) - (a.created||0));
+  let sorted = [...data.virgins].sort((a,b) => (b.created||0) - (a.created||0));
+  if (tableSort.virgins) sorted = sortRows(sorted, tableSort.virgins);
+  paintSortHeaders('#virgins', tableSort.virgins);
   if (sorted.length === 0) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:2rem; color:var(--text-3);">No collections</td></tr>';
-  else tbody.innerHTML = sorted.map(v => `<tr data-record-id="${v._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="virgins" data-id="${v._id}" onchange="bulkToggleRow('virgins', '${v._id}', this.checked)" ${bulkSel.virgins.has(v._id) ? 'checked' : ''}></td><td>${new Date(v.date).toLocaleDateString()}</td><td style="font-family:monospace;">${v.time || '—'}</td>
-      <td><span class="badge ${v.session === 'AM' ? 'b-f1' : 'b-f2'}">${v.session}</span></td><td>${v.source || '—'}</td>
+  else tbody.innerHTML = sorted.map(v => {
+    const notesText = (v.notes || '').trim();
+    const notesCell = notesText ? escapeHtml(notesText) : '<span class="notes-empty">No notes</span>';
+    return `<tr class="record-row" data-record-id="${v._id}" onclick="toggleRowNotes(event, '${v._id}')"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="virgins" data-id="${v._id}" onchange="bulkToggleRow('virgins', '${v._id}', this.checked)" ${bulkSel.virgins.has(v._id) ? 'checked' : ''}></td><td>${new Date(v.date).toLocaleDateString()}</td><td style="font-family:monospace;">${escapeHtml(v.time || '—')}</td>
+      <td><span class="badge ${v.session === 'AM' ? 'b-f1' : 'b-f2'}">${escapeHtml(v.session || '')}</span></td><td>${escapeHtml(v.source || '—')}</td>
       <td><span class="badge b-female">${v.females}</span></td><td><span class="badge b-male">${v.males}</span></td>
-      <td>${v.container || '—'}</td><td>${v.temp}°C</td>
-      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editVirgin('${v._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="deleteVirgin('${v._id}')"><i data-lucide="trash-2"></i></button></td></tr>`).join('');
+      <td>${escapeHtml(v.container || '—')}</td><td>${v.temp}°C</td>
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="event.stopPropagation(); editVirgin('${v._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="event.stopPropagation(); deleteVirgin('${v._id}')"><i data-lucide="trash-2"></i></button></td></tr>
+      <tr class="notes-row" data-notes-for="${v._id}"><td colspan="10"><strong style="color:var(--text-2);">Notes:</strong> ${notesCell}</td></tr>`;
+  }).join('');
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
   const td = document.getElementById('virginsTodayDetail'), tw = document.getElementById('virginsWeek'), ta = document.getElementById('virginsAll');
@@ -1755,14 +1845,19 @@ window.editPheno = function(id) {
 function renderPhenotypes() {
   const tbody = document.getElementById('phenoTableBody');
   if (!tbody) return;
-  const sorted = [...data.phenotypes].sort((a,b) => (b.created||0) - (a.created||0));
+  let sorted = [...data.phenotypes].sort((a,b) => (b.created||0) - (a.created||0));
+  if (tableSort.phenotypes) sorted = sortRows(sorted, tableSort.phenotypes);
+  paintSortHeaders('#phenotype', tableSort.phenotypes);
   if (sorted.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:var(--text-3);">No data</td></tr>'; return; }
   tbody.innerHTML = sorted.map(p => {
     const summary = Object.entries(p.counts).filter(([_,v]) => v > 0).map(([k,v]) => `${k}: ${v}`).join(' • ');
-    return `<tr data-record-id="${p._id}"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="phenotypes" data-id="${p._id}" onchange="bulkToggleRow('phenotypes', '${p._id}', this.checked)" ${bulkSel.phenotypes.has(p._id) ? 'checked' : ''}></td><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${p.vial}</strong></td>
-      <td><span class="badge b-${p.gen.toLowerCase()}">${p.gen}</span></td><td style="font-size:11px;">${summary}</td>
-      <td><strong>${p.total}</strong></td><td style="font-size:11px; color:var(--text-muted);">${(p.notes || '').substring(0, 30)}</td>
-      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="editPheno('${p._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="deletePheno('${p._id}')"><i data-lucide="trash-2"></i></button></td></tr>`;
+    const notesText = (p.notes || '').trim();
+    const notesCell = notesText ? escapeHtml(notesText) : '<span class="notes-empty">No notes</span>';
+    return `<tr class="record-row" data-record-id="${p._id}" onclick="toggleRowNotes(event, '${p._id}')"><td class="row-check-col can-edit-only"><input type="checkbox" class="row-check" data-coll="phenotypes" data-id="${p._id}" onchange="bulkToggleRow('phenotypes', '${p._id}', this.checked)" ${bulkSel.phenotypes.has(p._id) ? 'checked' : ''}></td><td>${new Date(p.date).toLocaleDateString()}</td><td><strong>${escapeHtml(p.vial || '')}</strong></td>
+      <td><span class="badge b-${(p.gen || '').toLowerCase()}">${escapeHtml(p.gen || '')}</span></td><td style="font-size:11px;">${escapeHtml(summary)}</td>
+      <td><strong>${p.total}</strong></td><td style="font-size:11px; color:var(--text-muted);">${escapeHtml((p.notes || '').substring(0, 30))}</td>
+      <td style="white-space:nowrap;"><button class="action-btn edit-btn" title="Edit" onclick="event.stopPropagation(); editPheno('${p._id}')"><i data-lucide="pencil"></i></button><button class="action-btn delete" title="Delete" onclick="event.stopPropagation(); deletePheno('${p._id}')"><i data-lucide="trash-2"></i></button></td></tr>
+      <tr class="notes-row" data-notes-for="${p._id}"><td colspan="8"><strong style="color:var(--text-2);">Notes:</strong> ${notesCell}</td></tr>`;
   }).join('');
 }
 window.quickChiSquare = function() {

@@ -74,3 +74,39 @@ html, body { touch-action: manipulation; }
 input, select, textarea {
   font-size: max(16px, 1em);
 }
+
+/* Let clicks on Lucide SVGs inside buttons fall through to the button itself —
+   otherwise onclick handlers on <button> can silently miss when the user lands
+   the pointer on the icon rather than the surrounding padding. Common Lucide
+   gotcha; affects edit / delete / mark-flipped action buttons in tables. */
+button svg.lucide { pointer-events: none; }
+
+/* Weekly-only form controls (container = vial / bottle). The form is shared
+   across the three stock sources; CSS toggles visibility per active source. */
+.weekly-only { display: none; }
+body[data-stock-source="weekly"] .weekly-only { display: block; }
+body[data-stock-source="weekly"] .form-row.weekly-only { display: grid; }
+
+/* Notes-row inside table — hidden by default, revealed when the parent record
+   row is .expanded (click anywhere outside the action buttons toggles). */
+tr.notes-row { display: none; }
+tr.record-row.expanded + tr.notes-row { display: table-row; }
+tr.record-row.expanded { background: var(--hover, rgba(0,0,0,0.02)); }
+tr.notes-row td {
+  padding: 10px 16px 14px !important;
+  background: var(--hover, rgba(0,0,0,0.025));
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+tr.notes-row td .notes-empty { color: var(--text-faint); font-style: italic; }
+tr.record-row { cursor: pointer; }
+tr.record-row button, tr.record-row input { cursor: auto; }
+
+/* Sortable column headers — visible affordance + tiny arrow when sorted. */
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--accent); }
+th.sortable::after { content: ''; display: inline-block; width: 8px; margin-left: 4px; opacity: 0.5; }
+th.sortable.sort-asc::after { content: '▲'; opacity: 1; color: var(--accent); }
+th.sortable.sort-desc::after { content: '▼'; opacity: 1; color: var(--accent); }
