@@ -41,6 +41,14 @@ const defaultSettings = {
     { value: '29', label: '29°C (fast, ~8d)' }
   ],
   flipWarnDays: 10, flipCritDays: 14, virginWindow25: 12, virginWindow18: 18,
+  // Per-source overrides: each stock list (Stock A, Stock B, Weekly) can carry
+  // its own flip warning + critical day count. When a slot is empty/missing
+  // getFlipDays() falls back to the global flipWarnDays / flipCritDays above.
+  flipPerSource: {
+    stocks:  { warn: 10, crit: 14 },
+    stocks2: { warn: 10, crit: 14 },
+    weekly:  { warn: 7,  crit: 10 }
+  },
   stockTypes: ['wild-type', 'mutant', 'GAL4 driver', 'UAS responder', 'balancer', 'RNAi line', 'CRISPR line', 'other'],
   defaultPhenos: ['Wild-type', 'Mutant', '♀ flies', '♂ flies'],
   recurringTasks: [
@@ -70,6 +78,16 @@ const STOCK_SOURCES = ['stocks', 'stocks2', 'weekly'];
 const STOCK_SOURCE_LABELS = { stocks: 'Stock A', stocks2: 'Stock B', weekly: 'Weekly' };
 window.activeStockSource = 'stocks';
 function stockModuleLabel(src) { return STOCK_SOURCE_LABELS[src || window.activeStockSource] || 'Stocks'; }
+// Return the flip-warning + critical day counts for the given stock source,
+// falling back to the global defaults if the per-source slot is missing.
+function getFlipDays(src) {
+  const settings = (typeof data !== 'undefined' && data && data.settings) || {};
+  const slot = (settings.flipPerSource && settings.flipPerSource[src]) || {};
+  const warn = Number.isFinite(+slot.warn) ? +slot.warn : (+settings.flipWarnDays || 10);
+  const crit = Number.isFinite(+slot.crit) ? +slot.crit : (+settings.flipCritDays || 14);
+  return { warn, crit };
+}
+window.getFlipDays = getFlipDays;
 window.setStockSource = function (src) {
   if (!STOCK_SOURCES.includes(src) || src === window.activeStockSource) {
     // Even when no-op, refresh visuals so the sidebar active rail follows the click.
@@ -348,9 +366,8 @@ function computeNextAction() {
   const hour = now.getHours();
   const settings = data.settings || {};
 
-  // 1. flip-overdue takes priority when anything is past flipCritDays
-  const critDays = settings.flipCritDays || 14;
-  const warnDays = settings.flipWarnDays || 10;
+  // 1. flip-overdue takes priority when anything is past the active source's crit days
+  const { warn: warnDays, crit: critDays } = getFlipDays(window.activeStockSource);
   const worstFlip = (data.stocks || []).map(s => {
     if (!s.flipDate) return null;
     const d = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000);
@@ -613,7 +630,7 @@ window.scheduleNotif = scheduleNotif;
 
 function checkAlerts() {
   if (!notifEnabled()) return;
-  const critDays = (data.settings && data.settings.flipCritDays) || 14;
+  const { crit: critDays } = getFlipDays(window.activeStockSource);
   (data.stocks || []).forEach(s => {
     if (!s.flipDate) return;
     const d = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000);
@@ -1410,19 +1427,38 @@ function renderDefaultPhenos() {
 }
 
 window.saveSettings = async function() {
-  data.settings.flipWarnDays = parseInt(document.getElementById('flipWarnDays').value) || 10;
-  data.settings.flipCritDays = parseInt(document.getElementById('flipCritDays').value) || 14;
+  // Per-source flip thresholds — each Stock A / Stock B / Weekly has its own pair.
+  data.settings.flipPerSource = data.settings.flipPerSource || {};
+  STOCK_SOURCES.forEach(src => {
+    const w = document.getElementById('flipWarn_' + src);
+    const c = document.getElementById('flipCrit_' + src);
+    data.settings.flipPerSource[src] = data.settings.flipPerSource[src] || {};
+    if (w && w.value !== '') data.settings.flipPerSource[src].warn = parseInt(w.value) || 10;
+    if (c && c.value !== '') data.settings.flipPerSource[src].crit = parseInt(c.value) || 14;
+  });
+  // Keep the legacy globals in sync with Stock A so older code paths (and
+  // anything not yet aware of flipPerSource) still see sensible numbers.
+  if (data.settings.flipPerSource.stocks) {
+    data.settings.flipWarnDays = data.settings.flipPerSource.stocks.warn || data.settings.flipWarnDays;
+    data.settings.flipCritDays = data.settings.flipPerSource.stocks.crit || data.settings.flipCritDays;
+  }
   data.settings.virginWindow25 = parseInt(document.getElementById('virginWindow25').value) || 12;
   data.settings.virginWindow18 = parseInt(document.getElementById('virginWindow18').value) || 18;
   await saveSettingsToCloud();
   populateSelects(); renderDashboardSchedule(); refreshDashboard();
+  if (typeof renderStocks === 'function') renderStocks();
   logActivity('edit', 'settings', 'Updated lab settings');
   toast('Settings saved to cloud');
 };
 function loadSettingsInputs() {
-  if (document.getElementById('flipWarnDays')) {
-    document.getElementById('flipWarnDays').value = data.settings.flipWarnDays;
-    document.getElementById('flipCritDays').value = data.settings.flipCritDays;
+  if (document.getElementById('flipWarn_stocks')) {
+    STOCK_SOURCES.forEach(src => {
+      const d = getFlipDays(src);
+      const w = document.getElementById('flipWarn_' + src);
+      const c = document.getElementById('flipCrit_' + src);
+      if (w) w.value = d.warn;
+      if (c) c.value = d.crit;
+    });
     document.getElementById('virginWindow25').value = data.settings.virginWindow25;
     document.getElementById('virginWindow18').value = data.settings.virginWindow18;
   }
@@ -1515,7 +1551,7 @@ function currentlyFilteredStocks() {
   const search = (document.getElementById('stockSearch')?.value || '').toLowerCase().trim();
   const filterId = (document.getElementById('stockFilterId')?.value || '').toLowerCase().trim();
   const filterLoc = (document.getElementById('stockFilterLocation')?.value || '').toLowerCase().trim();
-  const warnDays = data.settings.flipWarnDays;
+  const { warn: warnDays } = getFlipDays(window.activeStockSource);
   return data.stocks.filter(s => {
     if (search && !`${s.id || ''} ${s.genotype || ''} ${s.name || ''} ${s.location || ''}`.toLowerCase().includes(search)) return false;
     if (filterId && !(s.id || '').toLowerCase().includes(filterId)) return false;
@@ -1583,7 +1619,7 @@ function renderStocks() {
   }
   paintSortHeaders('#stocks', tableSort.stocks);
   if (filtered.length === 0) { tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:2rem; color:var(--text-3);">No stocks match the current filter</td></tr>'; return; }
-  const warnDays = data.settings.flipWarnDays, critDays = data.settings.flipCritDays;
+  const { warn: warnDays, crit: critDays } = getFlipDays(src);
   tbody.innerHTML = filtered.map(s => {
     const days = s.flipDate ? Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000) : null;
     let flipStatus = '—', status = '<span class="badge b-active">OK</span>';
@@ -2136,7 +2172,8 @@ function refreshDashboard() {
   if (cc) cc.textContent = data.crosses.filter(c => c.status === 'active').length;
   const today = new Date().toISOString().split('T')[0];
   if (vt) vt.textContent = data.virgins.filter(v => v.date === today).reduce((s,v) => s + v.females + v.males, 0);
-  const flipsDue = data.stocks.filter(s => s.flipDate && (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > data.settings.flipWarnDays);
+  const flipsDueWarn = getFlipDays(window.activeStockSource).warn;
+  const flipsDue = data.stocks.filter(s => s.flipDate && (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > flipsDueWarn);
   if (fa) fa.textContent = flipsDue.length;
   const flipList = document.getElementById('flipList');
   if (flipList) flipList.innerHTML = flipsDue.length === 0 ? '<div class="empty-state"><p>✓ All current</p></div>' : flipsDue.slice(0, 5).map(s => { const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000); return `<li class="task-item"><span class="task-time" style="color:var(--warn);">${days}d</span><span class="task-desc"><strong>${s.id}</strong> — ${s.genotype || s.name || ''}</span><span class="task-priority">Flip!</span></li>`; }).join('');
@@ -2184,7 +2221,7 @@ function renderSectionOverview() {
   const cont = document.getElementById('sectionOverview');
   if (!cont) return;
   const types = [...(data.settings.stockTypes || [])];
-  const warnDays = data.settings.flipWarnDays;
+  const { warn: warnDays } = getFlipDays(window.activeStockSource);
   const isDue = (s) => s.flipDate && (Date.now() - new Date(s.flipDate).getTime()) / 86400000 > warnDays;
   const tiles = types.map((t, i) => {
     const items = data.stocks.filter(s => s.type === t);

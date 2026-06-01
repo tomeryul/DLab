@@ -76,24 +76,24 @@ function localTZToUTCms(dateStr, timeStr) {
 
 function computeAlerts(stocks, virgins, settings) {
   const out = [];
-  const critDays = settings.flipCritDays || 14;
   const local = nowInLocalTZ();
   const flipInWakingHours = local.minutes >= FLIP_DAY_START_MIN && local.minutes < FLIP_DAY_END_MIN;
 
-  // 1. Flip overdue — stock past flipCritDays since last flip.
-  // Only push during local waking hours (07:00–17:00); overnight overdue stocks
-  // are picked up at the next 07:00 tick instead of buzzing during sleep.
+  // 1. Flip overdue — each stock list (Stock A / B / Weekly) gets its own
+  // critical-days threshold. Only push during local waking hours (07:00–17:00);
+  // overnight overdue stocks are picked up at the next 07:00 tick.
   if (flipInWakingHours) {
     for (const s of stocks) {
       if (!s.flipDate) continue;
       const days = Math.floor((Date.now() - new Date(s.flipDate).getTime()) / 86400000);
+      const critDays = critDaysFor(settings, s._source || 'stocks');
       if (days > critDays) {
         out.push({
-          key: `flip-${s._id}`,
+          key: `flip-${s._source || 'stocks'}-${s._id}`,
           title: '🔥 Flip overdue',
           body: `${s.id || 'Stock'} is ${days} days since last flip.`,
           cooldownHours: FLIP_COOLDOWN_HRS,
-          meta: { type: 'flip', stockId: s._id }
+          meta: { type: 'flip', stockId: s._id, source: s._source || 'stocks' }
         });
       }
     }
@@ -141,18 +141,33 @@ function computeAlerts(stocks, virgins, settings) {
 }
 
 async function fetchEverything() {
-  const [stocksSnap, virginsSnap, usersSnap, settingsSnap] = await Promise.all([
+  // Three parallel stocks collections — tag each loaded doc with its source
+  // so computeAlerts can pick the right flip threshold per source.
+  const [stocksSnap, stocks2Snap, weeklySnap, virginsSnap, usersSnap, settingsSnap] = await Promise.all([
     db.collection('stocks').get(),
+    db.collection('stocks2').get(),
+    db.collection('weekly').get(),
     db.collection('virgins').get(),
     db.collection('users').get(),
     db.doc('config/settings').get()
   ]);
+  const tag = (snap, src) => snap.docs.map(d => ({ _id: d.id, _source: src, ...d.data() }));
   return {
-    stocks:   stocksSnap.docs.map(d => ({ _id: d.id, ...d.data() })),
+    stocks: [
+      ...tag(stocksSnap, 'stocks'),
+      ...tag(stocks2Snap, 'stocks2'),
+      ...tag(weeklySnap, 'weekly')
+    ],
     virgins:  virginsSnap.docs.map(d => ({ _id: d.id, ...d.data() })),
     users:    usersSnap.docs.map(d => ({ uid: d.id, ...d.data() })),
     settings: settingsSnap.exists ? settingsSnap.data() : {}
   };
+}
+
+// Per-source flip critical-days lookup, mirroring the client's getFlipDays().
+function critDaysFor(settings, source) {
+  const slot = (settings.flipPerSource && settings.flipPerSource[source]) || {};
+  return Number.isFinite(+slot.crit) ? +slot.crit : (+settings.flipCritDays || 14);
 }
 
 function allTokensWithOwner(users) {
