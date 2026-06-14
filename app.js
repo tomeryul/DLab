@@ -75,7 +75,7 @@ const defaultProtocols = [
 // flips to whichever source the sidebar button last selected. Existing code
 // keeps reading data.stocks unchanged.
 const STOCK_SOURCES = ['stocks', 'stocks2', 'weekly'];
-const STOCK_SOURCE_LABELS = { stocks: 'Stock A', stocks2: 'Stock B', weekly: 'Weekly' };
+const STOCK_SOURCE_LABELS = { stocks: 'A Stock', stocks2: 'B Stock', weekly: 'Weekly' };
 window.activeStockSource = 'stocks';
 function stockModuleLabel(src) { return STOCK_SOURCE_LABELS[src || window.activeStockSource] || 'Stocks'; }
 // Return the flip-warning + critical day counts for the given stock source,
